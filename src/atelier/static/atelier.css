@@ -1,0 +1,13 @@
+/* Polices système uniquement : aucune police chargée depuis un CDN. */
+:root {
+  --fg: #1d1d1f;
+  --bg: #fafafa;
+  --line: #e2e2e2;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+body { margin: 0; }
+.site-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); background: #fff; }
+.brand { font-weight: 600; color: inherit; text-decoration: none; }
+.content { padding: 1rem; max-width: 72rem; margin: 0 auto; }

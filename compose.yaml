@@ -1,0 +1,37 @@
+# Les secrets ne sont jamais écrits ici : compose les lit dans l'environnement
+# (ou dans un fichier .env non versionné, voir .env.example) et refuse de
+# démarrer s'ils manquent, grâce à la forme ${VAR:?message}.
+services:
+  db:
+    # Instance dédiée à l'atelier : aucune table dans une base partagée.
+    image: postgres:17
+    environment:
+      POSTGRES_DB: atelier
+      POSTGRES_USER: atelier
+      POSTGRES_PASSWORD: ${ATELIER_DB_PASSWORD:?définir ATELIER_DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atelier -d atelier"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ATELIER_DATABASE_URL: postgresql://atelier:${ATELIER_DB_PASSWORD:?définir ATELIER_DB_PASSWORD}@db:5432/atelier
+      ATELIER_IMAGES_ROOT: /data/images
+      ATELIER_CAPTURE_TOKEN: ${ATELIER_CAPTURE_TOKEN:?définir ATELIER_CAPTURE_TOKEN}
+      ATELIER_HTTP_HOST: 0.0.0.0
+    volumes:
+      - images:/data/images
+    ports:
+      - "${ATELIER_HTTP_PORT:-8000}:8000"
+
+volumes:
+  db-data:
+  images:
