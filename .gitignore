@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Journaux de dev-deploy.sh sur les machines de test
+deploy-logs/

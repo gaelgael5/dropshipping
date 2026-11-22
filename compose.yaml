@@ -4,7 +4,9 @@
 services:
   db:
     # Instance dédiée à l'atelier : aucune table dans une base partagée.
+    # Aucun port publié : seule l'application y accède, par le réseau de la stack.
     image: postgres:17
+    restart: unless-stopped
     environment:
       POSTGRES_DB: atelier
       POSTGRES_USER: atelier
@@ -19,6 +21,7 @@ services:
 
   app:
     build: .
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +33,9 @@ services:
     volumes:
       - images:/data/images
     ports:
-      - "${ATELIER_HTTP_PORT:-8000}:8000"
+      # Port côté hôte seulement ; dans le conteneur l'application écoute toujours
+      # sur 8000. Paramétré parce que les machines de test sont partagées.
+      - "${ATELIER_PUBLISHED_PORT:-8000}:8000"
 
 volumes:
   db-data:
