@@ -6,6 +6,7 @@ from atelier.candidates.url_normalizer import (
     InvalidUrlError,
     candidate_domains,
     normalize_purchase_url,
+    with_site_domain,
 )
 
 
@@ -66,3 +67,10 @@ def test_candidate_domains_lists_parents_without_bare_tld() -> None:
         "m.aliexpress.com",
         "aliexpress.com",
     ]
+
+
+def test_with_site_domain_replaces_key_host_and_keeps_original() -> None:
+    url = normalize_purchase_url("https://fr.aliexpress.com/item/1.html?color=red#x")
+    keyed = with_site_domain(url, "aliexpress.com")
+    assert keyed.normalized == "https://aliexpress.com/item/1.html?color=red"
+    assert keyed.original == url.original

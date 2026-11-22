@@ -6,7 +6,11 @@ import asyncpg
 import structlog
 
 from atelier.candidates import repository as repo
-from atelier.candidates.url_normalizer import candidate_domains, normalize_purchase_url
+from atelier.candidates.url_normalizer import (
+    candidate_domains,
+    normalize_purchase_url,
+    with_site_domain,
+)
 
 log = structlog.get_logger(__name__)
 
@@ -32,7 +36,10 @@ async def resolve_capture_url(pool: asyncpg.Pool, raw_url: str) -> CaptureResult
     """
     url = normalize_purchase_url(raw_url)
     async with pool.acquire() as conn:
-        site_id = await repo.db_find_site_id(conn, candidate_domains(url.host))
+        site = await repo.db_find_site(conn, candidate_domains(url.host))
+        site_id = site.id if site else None
+        if site is not None:
+            url = with_site_domain(url, site.domain)
         # Deux essais : le second ne sert que si le lien existant a été supprimé
         # entre l'échec de l'insertion et sa relecture.
         for _ in range(_MAX_ATTEMPTS):

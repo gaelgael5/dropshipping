@@ -119,6 +119,19 @@ def _is_tracking_param(name: str) -> bool:
     return lowered in _TRACKING_PARAMS or lowered.startswith(_TRACKING_PREFIXES)
 
 
+def with_site_domain(url: NormalizedUrl, site_domain: str) -> NormalizedUrl:
+    """Remplace l'hôte de la clé par le domaine d'un site d'achat connu.
+
+    Les sous-domaines de pays d'un site connu (fr., de., m.…) servent la même fiche
+    produit : sans cela, le même article capturé depuis fr. puis www. donnait deux
+    candidates (constaté sur machine de test). On ne le fait QUE pour un site connu :
+    ailleurs, rien ne garantit que deux sous-domaines vendent le même article.
+    """
+    parts = urlsplit(url.normalized)
+    normalized = urlunsplit((parts.scheme, site_domain, parts.path, parts.query, ""))
+    return NormalizedUrl(original=url.original, normalized=normalized, host=url.host)
+
+
 def candidate_domains(host: str) -> list[str]:
     """« fr.aliexpress.com » → ["fr.aliexpress.com", "aliexpress.com"] (sans le TLD seul)."""
     labels = host.split(".")

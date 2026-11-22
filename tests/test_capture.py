@@ -79,9 +79,18 @@ async def test_find_candidate_by_link_unknown_returns_none(migrated_pool: asyncp
         assert await repo.db_find_candidate_by_link(conn, "https://nulle.part/") is None
 
 
-async def test_find_site_id_unknown_domain_returns_none(migrated_pool: asyncpg.Pool) -> None:
+async def test_find_site_unknown_domain_returns_none(migrated_pool: asyncpg.Pool) -> None:
     async with migrated_pool.acquire() as conn:
-        assert await repo.db_find_site_id(conn, ["inconnu.example"]) is None
+        assert await repo.db_find_site(conn, ["inconnu.example"]) is None
+
+
+async def test_find_site_prefers_longest_matching_domain(migrated_pool: asyncpg.Pool) -> None:
+    await migrated_pool.execute(
+        "INSERT INTO purchase_sites (name, domain) VALUES ('AE FR', 'fr.aliexpress.com')"
+    )
+    async with migrated_pool.acquire() as conn:
+        site = await repo.db_find_site(conn, ["fr.aliexpress.com", "aliexpress.com"])
+    assert site is not None and site.domain == "fr.aliexpress.com"
 
 
 async def test_list_candidates_empty_returns_nothing(migrated_pool: asyncpg.Pool) -> None:
@@ -104,3 +113,24 @@ async def test_list_candidates_newest_first_with_cursor_and_link_count(
     assert first[0].link_count == 1
     assert first[0].first_link_host == "shop.example"
     assert first[0].status == "brouillon"
+
+
+async def test_capture_same_article_on_country_subdomain_returns_existing(
+    migrated_pool: asyncpg.Pool,
+) -> None:
+    # Défaut constaté sur la machine de test : fr. et www. d'un même site connu
+    # créaient deux candidates pour un seul article.
+    first = await resolve_capture_url(migrated_pool, "https://fr.aliexpress.com/item/55.html?spm=x")
+    again = await resolve_capture_url(migrated_pool, "https://www.aliexpress.com/item/55.html")
+    other = await resolve_capture_url(migrated_pool, "https://de.aliexpress.com/item/55.html")
+    assert again.created is False
+    assert other.created is False
+    assert again.candidate_id == other.candidate_id == first.candidate_id
+
+
+async def test_capture_unknown_site_subdomains_stay_distinct(migrated_pool: asyncpg.Pool) -> None:
+    # Hors des sites connus, rien ne dit que deux sous-domaines vendent le même
+    # article : seul « www. » est assimilé.
+    a = await resolve_capture_url(migrated_pool, "https://fr.boutique.example/p/1")
+    b = await resolve_capture_url(migrated_pool, "https://de.boutique.example/p/1")
+    assert a.candidate_id != b.candidate_id

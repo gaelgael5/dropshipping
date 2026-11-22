@@ -25,14 +25,21 @@ class CandidateRow:
     first_link_host: str | None
 
 
-async def db_find_site_id(conn: _Conn, domains: list[str]) -> int | None:
+@dataclass(frozen=True)
+class SiteRef:
+    id: int
+    domain: str
+
+
+async def db_find_site(conn: _Conn, domains: list[str]) -> SiteRef | None:
     # Le domaine le plus long gagne : « fr.aliexpress.com » préfère une entrée
     # dédiée au sous-domaine, s'il y en a une, à celle du domaine parent.
-    return await conn.fetchval(  # type: ignore[no-any-return]
-        "SELECT id FROM purchase_sites WHERE domain = ANY($1::text[])"
+    row = await conn.fetchrow(
+        "SELECT id, domain FROM purchase_sites WHERE domain = ANY($1::text[])"
         " ORDER BY length(domain) DESC LIMIT 1",
         domains,
     )
+    return SiteRef(row["id"], row["domain"]) if row else None
 
 
 async def db_insert_candidate(conn: _Conn) -> int:
