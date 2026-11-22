@@ -16,15 +16,26 @@ from atelier.candidates.fiche import (
     resolve_remove_link,
     resolve_update_field,
 )
-from atelier.candidates.fields import CANDIDATE_FIELDS, LINK_FIELDS, FieldValueError
+from atelier.candidates.fields import (
+    CANDIDATE_FIELDS,
+    CANDIDATE_PREP_FIELDS,
+    CATEGORY_FIELDS,
+    LINK_FIELDS,
+    FieldValueError,
+)
 from atelier.candidates.url_normalizer import InvalidUrlError
+from atelier.web.categories_page import tree_options
 from atelier.web.photos import photos_view
 from atelier.web.templating import templates
 
 router = APIRouter(tags=["fiche"], default_response_class=HTMLResponse)
 
-_OWNERS = {"candidates": CANDIDATE_FIELDS, "links": LINK_FIELDS}
-_TABLES = {"candidates": "candidates", "links": "purchase_links"}
+_OWNERS = {
+    "candidates": {**CANDIDATE_FIELDS, **CANDIDATE_PREP_FIELDS},
+    "links": LINK_FIELDS,
+    "categories": CATEGORY_FIELDS,
+}
+_TABLES = {"candidates": "candidates", "links": "purchase_links", "categories": "categories"}
 
 
 async def _fiche_or_404(request: Request, candidate_id: int) -> dict[str, object]:
@@ -36,6 +47,7 @@ async def _fiche_or_404(request: Request, candidate_id: int) -> dict[str, object
         "candidate": fiche.candidate,
         "links": fiche.links,
         "candidate_fields": CANDIDATE_FIELDS,
+        "prep_fields": CANDIDATE_PREP_FIELDS,
         "link_fields": LINK_FIELDS,
     }
 
@@ -45,6 +57,9 @@ async def show_candidate(request: Request, candidate_id: int) -> HTMLResponse:
     context = await _fiche_or_404(request, candidate_id)
     context["candidate_id"] = candidate_id
     context["photos"] = await photos_view(request, candidate_id)
+    context["options"] = await tree_options(request)
+    context["current_category_id"] = context["candidate"]["category_id"]  # type: ignore[index]
+    context["proposal"] = []
     return templates.TemplateResponse(request, "candidate.html", context)
 
 

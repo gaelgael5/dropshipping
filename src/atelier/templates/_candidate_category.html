@@ -1,0 +1,21 @@
+<div class="field" id="candidate-category">
+  <label for="category-select-{{ candidate_id }}">Catégorie</label>
+  <select id="category-select-{{ candidate_id }}" name="category_id"
+          hx-post="/candidates/{{ candidate_id }}/category" hx-trigger="change"
+          hx-target="#candidate-category" hx-swap="outerHTML">
+    <option value=""{% if current_category_id is none %} selected{% endif %}>— Non classée —</option>
+    {% for opt in options %}
+    <option value="{{ opt.id }}"{% if current_category_id == opt.id %} selected{% endif %}>{{ "  " * opt.depth }}{{ "└ " if opt.depth else "" }}{{ opt.label }}</option>
+    {% endfor %}
+  </select>
+  {% if proposal %}
+  {# Changement de catégorie : rien n'a été réécrit. On montre ce qui changerait. #}
+  <div class="proposal" role="status">
+    <p>Appliquer les valeurs par défaut de la nouvelle catégorie ? Cela remplacera :</p>
+    <ul>{% for label, value in proposal %}<li><strong>{{ label }}</strong> : {{ value }}</li>{% endfor %}</ul>
+    <button type="button" hx-post="/candidates/{{ candidate_id }}/apply-category-defaults">Appliquer</button>
+    <button type="button" class="link" hx-get="/candidates/{{ candidate_id }}/category"
+            hx-target="#candidate-category" hx-swap="outerHTML">Ne rien changer</button>
+  </div>
+  {% endif %}
+</div>

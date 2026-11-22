@@ -10,7 +10,13 @@ import asyncpg
 import structlog
 
 from atelier.candidates import repository as repo
-from atelier.candidates.fields import CANDIDATE_FIELDS, LINK_FIELDS, FieldSpec
+from atelier.candidates.fields import (
+    CANDIDATE_FIELDS,
+    CANDIDATE_PREP_FIELDS,
+    CATEGORY_FIELDS,
+    LINK_FIELDS,
+    FieldSpec,
+)
 from atelier.candidates.link_key import resolve_link_key
 from atelier.images.photos import candidate_dir
 from atelier.images.store import ImageStore
@@ -43,7 +49,11 @@ class Fiche:
 # Tables et colonnes viennent EXCLUSIVEMENT de ces constantes et des listes
 # fermées de fields.py, jamais de la requête : c'est ce qui rend sûr d'interpoler
 # l'identifiant SQL (un identifiant ne peut pas être passé en paramètre lié).
-_EDITABLE = {"candidates": CANDIDATE_FIELDS, "purchase_links": LINK_FIELDS}
+_EDITABLE = {
+    "candidates": {**CANDIDATE_FIELDS, **CANDIDATE_PREP_FIELDS},
+    "purchase_links": LINK_FIELDS,
+    "categories": CATEGORY_FIELDS,
+}
 
 
 async def _db_update_field(
@@ -80,7 +90,11 @@ async def resolve_update_field(
 
 
 async def db_get_fiche(conn: repo._Conn, candidate_id: int) -> Fiche | None:
-    row = await conn.fetchrow("SELECT * FROM candidates WHERE id = $1", candidate_id)
+    row = await conn.fetchrow(
+        "SELECT c.*, cat.label AS category_label FROM candidates c"
+        " LEFT JOIN categories cat ON cat.id = c.category_id WHERE c.id = $1",
+        candidate_id,
+    )
     if row is None:
         return None
     links = await conn.fetch(

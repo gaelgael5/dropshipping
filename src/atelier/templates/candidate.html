@@ -11,8 +11,21 @@
 
 <section class="capture">
   <h2>Attributs de vente</h2>
+  {% include "_candidate_category.html" %}
   <div class="field-grid">
     {% for name, spec in candidate_fields.items() %}
+    {% with owner="candidates", row_id=candidate.id, shown=spec.display(candidate[spec.column]), error=None, saved=False %}
+    {% include "_field.html" %}
+    {% endwith %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="capture prep">
+  <h2>Préparation de l'annonce</h2>
+  <p class="muted small">Préremplis par la catégorie lors du premier classement, toujours modifiables.</p>
+  <div class="field-grid">
+    {% for name, spec in prep_fields.items() %}
     {% with owner="candidates", row_id=candidate.id, shown=spec.display(candidate[spec.column]), error=None, saved=False %}
     {% include "_field.html" %}
     {% endwith %}

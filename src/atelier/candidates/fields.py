@@ -57,6 +57,13 @@ def parse_price(raw: str) -> object:
     return price
 
 
+def parse_position(raw: str) -> object:
+    value = raw.strip()
+    if not re.fullmatch(r"-?\d{1,6}", value):
+        raise FieldValueError("Un nombre entier est attendu.")
+    return int(value)
+
+
 def parse_currency(raw: str) -> object:
     value = raw.strip().upper()
     if not value:
@@ -126,4 +133,32 @@ LINK_FIELDS: dict[str, FieldSpec] = {
     "available_sizes": FieldSpec(
         "available_sizes", "Tailles disponibles", "list", parse_sizes, _show_list
     ),
+}
+
+# Champs que la catégorie préremplit (ticket « arbre de catégories ») ; affichés à
+# part des attributs de vente, mais enregistrés par le même mécanisme.
+CANDIDATE_PREP_FIELDS: dict[str, FieldSpec] = {
+    "photo_prompt": FieldSpec(
+        "photo_prompt", "Prompt de génération de photo", "textarea", _text(4000), _show_text
+    ),
+    "parcel_size": FieldSpec("parcel_size", "Taille de colis", "text", _text(50), _show_text),
+}
+
+CATEGORY_FIELDS: dict[str, FieldSpec] = {
+    "label": FieldSpec("label", "Libellé", "text", _text(100, required=True), _show_text),
+    "position": FieldSpec("position", "Ordre d'affichage", "text", parse_position, _show_text),
+    "photo_prompt_template": FieldSpec(
+        "photo_prompt_template", "Gabarit de prompt photo", "textarea", _text(4000), _show_text
+    ),
+    "description_template": FieldSpec(
+        "description_template", "Gabarit de description", "textarea", _text(5000), _show_text
+    ),
+    "parcel_size": FieldSpec("parcel_size", "Taille de colis", "text", _text(50), _show_text),
+}
+
+# Valeur par défaut de la catégorie -> champ de la candidate qu'elle préremplit.
+CATEGORY_DEFAULTS_TO_CANDIDATE: dict[str, str] = {
+    "photo_prompt_template": "photo_prompt",
+    "description_template": "description",
+    "parcel_size": "parcel_size",
 }

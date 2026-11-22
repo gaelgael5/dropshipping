@@ -80,3 +80,16 @@ button.danger { background: var(--err-fg); }
 .link-card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem; }
 .link-head { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
 .link-url { flex: 1 1 12rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.small { font-size: 0.85rem; }
+h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+.prep { margin-top: 1.5rem; }
+.cat-layout { display: grid; gap: 1rem; grid-template-columns: minmax(14rem, 1fr) 3fr; align-items: start; }
+@media (max-width: 48rem) { .cat-layout { grid-template-columns: 1fr; } }
+.tree { list-style: none; padding-left: 1rem; margin: 0.25rem 0; }
+.cat-layout > aside > .tree { padding-left: 0; }
+.tree a { text-decoration: none; color: var(--fg); }
+.tree a.current { font-weight: 600; color: var(--accent); }
+.mapping-list { padding-left: 1rem; }
+form.inline { display: inline; }
+.proposal { margin-top: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 6px; background: var(--hl); }
+.proposal ul { margin: 0.4rem 0; padding-left: 1.2rem; }

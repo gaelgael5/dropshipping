@@ -24,6 +24,7 @@ class CandidateRow:
     created_at: datetime
     link_count: int
     first_link_host: str | None
+    category_label: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,9 +82,11 @@ async def db_list_candidates(conn: _Conn, before_id: int | None, limit: int) -> 
         """
         SELECT c.id, c.title, c.status, c.created_at,
                count(l.id) AS link_count,
-               min(substring(l.url FROM '^[a-zA-Z]+://([^/:?#]+)')) AS first_link_host
+               min(substring(l.url FROM '^[a-zA-Z]+://([^/:?#]+)')) AS first_link_host,
+               min(cat.label) AS category_label
         FROM candidates c
         LEFT JOIN purchase_links l ON l.candidate_id = c.id
+        LEFT JOIN categories cat ON cat.id = c.category_id
         WHERE $1::bigint IS NULL OR c.id < $1
         GROUP BY c.id
         ORDER BY c.id DESC
@@ -94,7 +97,13 @@ async def db_list_candidates(conn: _Conn, before_id: int | None, limit: int) -> 
     )
     return [
         CandidateRow(
-            r["id"], r["title"], r["status"], r["created_at"], r["link_count"], r["first_link_host"]
+            r["id"],
+            r["title"],
+            r["status"],
+            r["created_at"],
+            r["link_count"],
+            r["first_link_host"],
+            r["category_label"],
         )
         for r in rows
     ]
