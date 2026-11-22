@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from atelier.api import capture, health
 from atelier.config import Settings
 from atelier.images.store import ImageStore
-from atelier.web import candidate_page, categories_page, pages, photos
+from atelier.web import candidate_page, categories_page, pages, photos, validation_page
 
 _PACKAGE_DIR = Path(__file__).parent
 
@@ -31,6 +31,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     app.include_router(pages.router)
     app.include_router(candidate_page.router)
     app.include_router(categories_page.router)
+    app.include_router(validation_page.router)
     app.include_router(photos.router)
     app.include_router(health.router)
     app.include_router(capture.router)

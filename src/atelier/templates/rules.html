@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Règles de validation — Atelier d'annonces{% endblock %}
+{% block content %}
+<h1>Règles de validation</h1>
+<p class="muted">Ces règles disent quand une candidate est prête. Ce sont des données : les
+désactiver ou en ajouter ne demande aucune modification du code.</p>
+<div class="table-wrap">
+  <table class="queue-table">
+    <thead><tr><th>Règle</th><th>Type</th><th>Message affiché</th><th>État</th></tr></thead>
+    <tbody>
+      {% for rule in rules %}
+      <tr>
+        <td><code>{{ rule.code }}</code></td>
+        <td>{{ rule.kind }}{% if rule.kind not in known_kinds %} <span class="badge">inconnu</span>{% endif %}</td>
+        <td>{{ rule.message }}</td>
+        <td>
+          <form method="post" action="/rules/{{ rule.id }}/enabled" class="inline">
+            <input type="hidden" name="enabled" value="{{ 'false' if rule.enabled else 'true' }}">
+            <button type="submit" class="link">{{ "Active — désactiver" if rule.enabled else "Inactive — activer" }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Rendre un champ obligatoire</h2>
+<form method="post" action="/rules" class="capture upload-form">
+  <label for="rule-field">Champ</label>
+  <select id="rule-field" name="field">
+    {% for key, label in fields.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+  </select>
+  <label for="rule-message">Message (facultatif)</label>
+  <input id="rule-message" name="message" type="text" maxlength="200">
+  <button type="submit">Ajouter la règle</button>
+</form>
+{% endblock %}

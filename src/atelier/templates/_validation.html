@@ -1,0 +1,15 @@
+<div id="candidate-validation" class="validation">
+  <button type="button" hx-post="/candidates/{{ candidate_id }}/validate"
+          hx-target="#candidate-validation" hx-swap="outerHTML">Vérifier si l'annonce est prête</button>
+  {% if report %}
+  {% if report.ready %}
+  <p class="msg msg-ok" role="status">Prête : aucune règle active n'est en défaut.</p>
+  {% else %}
+  {# Valider n'empêche pas d'enregistrer : la liste dit quoi compléter, rien de plus. #}
+  <div class="msg msg-error" role="status">
+    <p>{{ report.missing | length }} point(s) à compléter :</p>
+    <ul>{% for m in report.missing %}<li>{{ m.reason }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>

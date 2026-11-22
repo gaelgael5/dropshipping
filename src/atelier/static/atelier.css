@@ -93,3 +93,6 @@ h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
 form.inline { display: inline; }
 .proposal { margin-top: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 6px; background: var(--hl); }
 .proposal ul { margin: 0.4rem 0; padding-left: 1.2rem; }
+.validation { margin: 0.5rem 0 1rem; }
+.validation .msg ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.validation .msg p { margin: 0; }

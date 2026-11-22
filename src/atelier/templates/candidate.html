@@ -8,6 +8,7 @@
           hx-confirm="Supprimer cette candidate, ses liens d'achat et ses photos (fichiers compris) ?">
     Supprimer la candidate</button>
 </div>
+{% with report=None %}{% include "_validation.html" %}{% endwith %}
 
 <section class="capture">
   <h2>Attributs de vente</h2>
