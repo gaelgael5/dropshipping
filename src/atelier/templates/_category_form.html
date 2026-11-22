@@ -1,0 +1,65 @@
+{% set editing = category_id is not none %}
+<div class="dialog-form">
+<form class="dialog-form flush" hx-post="{{ '/categories/%d' % category_id if editing else '/categories' }}"
+      hx-target="#dialog-body">
+  <h2>{{ "Modifier la catégorie" if editing else "Ajouter une catégorie" }}</h2>
+  {% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+  <div class="form-grid">
+    <div class="form-field">
+      <label for="c-label">Libellé</label>
+      <input id="c-label" name="label" required maxlength="100" value="{{ values.label }}" placeholder="Robes">
+    </div>
+    <div class="form-field">
+      <label for="c-parent">Catégorie parente</label>
+      <select id="c-parent" name="parent_id">
+        <option value=""{% if parent_id is none %} selected{% endif %}>— Racine —</option>
+        {% for p in parents %}
+        <option value="{{ p.id }}"{% if parent_id == p.id %} selected{% endif %}>{{ "  " * p.depth }}{{ "└ " if p.depth else "" }}{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="c-position">Ordre d'affichage</label>
+      <input id="c-position" name="position" inputmode="numeric" value="{{ values.position or '0' }}">
+    </div>
+    <div class="form-field">
+      <label for="c-parcel">Taille de colis</label>
+      <input id="c-parcel" name="parcel_size" maxlength="50" value="{{ values.parcel_size }}"
+             placeholder="{{ 'Hérité : ' ~ inherited.parcel_size if inherited.parcel_size else 'ex. petit' }}">
+    </div>
+  </div>
+  {% for name in ["photo_prompt_template", "description_template"] %}
+  <label for="c-{{ name }}">{{ fields[name].label }}</label>
+  <textarea id="c-{{ name }}" name="{{ name }}" rows="3"
+            placeholder="{{ 'Hérité : ' ~ inherited[name] if inherited[name] else 'Vide : rien à préremplir' }}">{{ values[name] }}</textarea>
+  {% endfor %}
+  <p class="hint">Laisser un champ vide pour hériter de la catégorie parente. Modifier ces valeurs ne change aucune candidate déjà classée.</p>
+  <div class="dialog-actions">
+    <button type="button" class="secondary" onclick="this.closest('dialog').close()">Annuler</button>
+    <button type="submit">{{ "Enregistrer" if editing else "Ajouter" }}</button>
+  </div>
+</form>
+
+{% if editing %}
+<section class="dialog-section">
+  <h3>Correspondance vers les plateformes de vente</h3>
+  {% if mappings %}
+  <table class="queue-table">
+    <tbody>
+    {% for m in mappings %}
+      <tr><td><strong>{{ m.platform }}</strong></td><td><code class="small">{{ m.platform_category_id }}</code></td>
+        <td class="row-actions"><button type="button" class="link-danger" hx-target="#dialog-body"
+            hx-post="/categories/{{ category_id }}/mappings/{{ m.platform }}/delete">Retirer</button></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted small">Aucune correspondance.</p>{% endif %}
+  <form class="form-row" hx-post="/categories/{{ category_id }}/mappings" hx-target="#dialog-body">
+    <input name="platform" maxlength="40" required placeholder="plateforme (vinted)" aria-label="Plateforme">
+    <input name="platform_category_id" maxlength="100" required placeholder="identifiant chez la plateforme" aria-label="Identifiant chez la plateforme">
+    <button type="submit" class="secondary">Ajouter</button>
+  </form>
+  <p class="hint">Les correspondances s'enregistrent tout de suite, indépendamment du bouton « Enregistrer ».</p>
+</section>
+{% endif %}
+</div>

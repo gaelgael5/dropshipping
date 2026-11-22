@@ -1,82 +1,51 @@
 {% extends "base.html" %}
 {% block title %}Catégories — Atelier d'annonces{% endblock %}
-{% macro tree(nodes) %}
-<ul class="tree">
-  {% for node in nodes %}
-  <li>
-    <a href="/categories/{{ node.id }}"{% if selected and selected.id == node.id %} class="current"{% endif %}>{{ node.label }}</a>
-    {% if node.children %}{{ tree(node.children) }}{% endif %}
-  </li>
-  {% endfor %}
-</ul>
-{% endmacro %}
-{% macro parent_select(name, current, exclude_id=None) %}
-<select name="{{ name }}">
-  <option value=""{% if current is none %} selected{% endif %}>— Racine —</option>
-  {% for opt in options %}{% if opt.id != exclude_id %}
-  <option value="{{ opt.id }}"{% if current == opt.id %} selected{% endif %}>{{ "  " * opt.depth }}{{ "└ " if opt.depth else "" }}{{ opt.label }}</option>
-  {% endif %}{% endfor %}
-</select>
-{% endmacro %}
 {% block content %}
-<h1>Catégories</h1>
-{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
-<div class="cat-layout">
-  <aside class="capture">
-    {% if roots %}{{ tree(roots) }}{% else %}<p class="muted">Aucune catégorie. Créez la première ci-dessous.</p>{% endif %}
-    <form method="post" action="/categories" class="upload-form">
-      <label for="new-cat">Nouvelle catégorie</label>
-      <input id="new-cat" name="label" type="text" maxlength="100" required placeholder="Robes">
-      <label>Sous</label>
-      {{ parent_select("parent_id", selected.id if selected else none) }}
-      <button type="submit">Créer</button>
-    </form>
-  </aside>
-
-  {% if selected %}
-  <section class="capture">
-    <div class="fiche-head">
-      <h2>{{ selected.label }}</h2>
-      <form method="post" action="/categories/{{ selected.id }}/delete">
-        <button type="submit" class="danger">Supprimer</button>
-      </form>
-    </div>
-    <div class="field-grid">
-      {% for name, spec in category_fields.items() %}
-      {% with owner="categories", row_id=selected.id, shown=spec.display(selected[spec.column]), error=None, saved=False %}
-      {% include "_field.html" %}
-      {% endwith %}
-      {% endfor %}
-    </div>
-    <p class="muted small">Une valeur par défaut laissée vide est héritée du plus proche ancêtre.
-      Valeurs effectives : prompt photo « {{ effective.photo_prompt_template or "—" }} »,
-      description « {{ effective.description_template or "—" }} », colis « {{ effective.parcel_size or "—" }} ».
-      Modifier ces valeurs ne change aucune candidate existante.</p>
-
-    <h3>Déplacer</h3>
-    <form method="post" action="/categories/{{ selected.id }}/move" class="capture-row">
-      {{ parent_select("parent_id", selected.parent_id, selected.id) }}
-      <button type="submit">Déplacer</button>
-    </form>
-
-    <h3>Correspondance vers les plateformes de vente</h3>
-    {% if mappings %}
-    <ul class="mapping-list">
-      {% for m in mappings %}
-      <li><strong>{{ m.platform }}</strong> → {{ m.platform_category_id }}
-        <form method="post" action="/categories/{{ selected.id }}/mappings/{{ m.platform }}/delete" class="inline">
-          <button type="submit" class="link-danger">Retirer</button>
-        </form>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}<p class="muted">Aucune correspondance.</p>{% endif %}
-    <form method="post" action="/categories/{{ selected.id }}/mappings" class="capture-row">
-      <input name="platform" type="text" maxlength="40" placeholder="plateforme (ex. vinted)" required aria-label="Plateforme">
-      <input name="platform_category_id" type="text" maxlength="100" placeholder="identifiant de catégorie" required aria-label="Identifiant chez la plateforme">
-      <button type="submit">Ajouter</button>
-    </form>
-  </section>
-  {% endif %}
+<div class="page-head">
+  <h1>Catégories</h1>
+  <div class="actions">
+    <button type="button" hx-get="/categories/new" hx-target="#dialog-body"
+            hx-on::after-request="{{ open }}">+ Ajouter une catégorie</button>
+  </div>
 </div>
+<p class="muted small">Chaque catégorie porte des valeurs par défaut qui préremplissent les candidates
+classées dedans. Une valeur laissée vide est héritée de la catégorie parente.</p>
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="queue-table secrets-table cat-table">
+    <thead>
+      <tr><th>Catégorie</th><th>Prompt photo</th><th>Description</th><th>Colis</th>
+          <th>Plateformes</th><th class="num">Candidates</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><span class="cat-name" style="padding-left: {{ r.depth * 1.25 }}rem">
+          {% if r.depth %}<span class="muted">└</span> {% endif %}{{ r.label }}</span></td>
+        {% for name in default_fields %}
+        <td class="small">{% if r.own_defaults[name] %}<span class="badge badge-ok" title="{{ r.own_defaults[name] }}">défini</span>
+          {% elif r.depth %}<span class="muted">hérité</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        {% endfor %}
+        <td class="small">{% for m in r.mappings %}<span class="badge">{{ m.platform }} → {{ m.platform_category_id }}</span> {% else %}<span class="muted">—</span>{% endfor %}</td>
+        <td class="num">{{ r.candidate_count }}</td>
+        <td class="row-actions">
+          <button type="button" class="link" hx-get="/categories/new?parent_id={{ r.id }}" hx-target="#dialog-body"
+                  hx-on::after-request="{{ open }}">+ Sous-catégorie</button>
+          <button type="button" class="link" hx-get="/categories/{{ r.id }}/edit" hx-target="#dialog-body"
+                  hx-on::after-request="{{ open }}">Modifier</button>
+          <button type="button" class="link-danger" hx-post="/categories/{{ r.id }}/delete" hx-target="#dialog-body"
+                  hx-confirm="Supprimer la catégorie « {{ r.label }} » ?"
+                  hx-on::after-request="if (event.detail.xhr.status === 200) {{ open }}">Supprimer</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">Aucune catégorie. Utilisez « Ajouter une catégorie ».</p>
+{% endif %}
+
+<dialog id="dialog" class="dialog dialog-wide"><div id="dialog-body"></div></dialog>
 {% endblock %}

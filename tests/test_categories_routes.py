@@ -28,64 +28,113 @@ async def client(tmp_path: Path, migrated_pool: asyncpg.Pool) -> AsyncIterator[h
         yield c
 
 
-async def test_categories_page_empty_then_create_tree(client: httpx.AsyncClient) -> None:
+def _form(**over: str) -> dict[str, str]:
+    return {"label": "Vêtements", "parent_id": "", "position": "0", "parcel_size": "",
+            "photo_prompt_template": "", "description_template": "", **over}  # fmt: skip
+
+
+async def test_page_lists_tree_as_indented_rows(
+    client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
+) -> None:
     empty = await client.get("/categories")
-    assert "Aucune catégorie" in empty.text
-    root = await client.post("/categories", data={"label": "Vêtements", "parent_id": ""})
-    assert root.status_code == 303
-    root_id = root.headers["location"].rsplit("/", 1)[1]
-    child = await client.post("/categories", data={"label": "Robes", "parent_id": root_id})
-    page = await client.get(child.headers["location"])
-    assert page.status_code == 200
-    assert page.text.count('<ul class="tree">') == 2  # deux niveaux affichés
-    assert "Gabarit de prompt photo" in page.text
+    assert "Aucune catégorie" in empty.text and 'hx-get="/categories/new"' in empty.text
+    created = await client.post("/categories", data=_form(parcel_size="moyen"))
+    assert created.status_code == 204 and created.headers["hx-redirect"] == "/categories"
+    root = await migrated_pool.fetchval("SELECT id FROM categories")
+    await client.post("/categories", data=_form(label="Robes", parent_id=str(root)))
+    page = (await client.get("/categories")).text
+    assert page.index("Vêtements") < page.index("Robes")
+    assert "padding-left: 1.25rem" in page  # sous-catégorie indentée
+    assert "hérité" in page and "défini" in page
 
 
-async def test_create_empty_label_shows_error(client: httpx.AsyncClient) -> None:
-    response = await client.post("/categories", data={"label": " "})
-    assert response.status_code == 422
-    assert "Libellé" in response.text
+async def test_add_dialog_preselects_parent_and_shows_inherited(
+    client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
+) -> None:
+    await client.post("/categories", data=_form(parcel_size="moyen"))
+    root = await migrated_pool.fetchval("SELECT id FROM categories")
+    dialog = (await client.get(f"/categories/new?parent_id={root}")).text
+    assert f'<option value="{root}" selected>' in dialog
+    assert "Hérité : moyen" in dialog
 
 
-async def test_move_creating_cycle_shows_error(
+async def test_add_errors_keep_dialog_open(client: httpx.AsyncClient) -> None:
+    empty = await client.post("/categories", data=_form(label=" "))
+    assert empty.status_code == 200 and "Libellé" in empty.text
+    bad_pos = await client.post("/categories", data=_form(position="x"))
+    assert "Ordre d'affichage" in bad_pos.text
+    orphan = await client.post("/categories", data=_form(parent_id="98765"))
+    assert "parente introuvable" in orphan.text
+
+
+async def test_edit_saves_fields_and_moves(
+    client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
+) -> None:
+    a = await cats.resolve_create_category(migrated_pool, "A", None)
+    b = await cats.resolve_create_category(migrated_pool, "B", None)
+    dialog = (await client.get(f"/categories/{b}/edit")).text
+    assert 'value="B"' in dialog and "Correspondance vers les plateformes" in dialog
+    saved = await client.post(
+        f"/categories/{b}", data=_form(label="B2", parent_id=str(a), description_template="Belle")
+    )
+    assert saved.status_code == 204
+    row = await migrated_pool.fetchrow(
+        "SELECT label, parent_id, description_template FROM categories WHERE id=$1", b
+    )
+    assert tuple(row) == ("B2", a, "Belle")
+
+
+async def test_edit_cycle_refused_and_parent_list_excludes_descendants(
     client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
 ) -> None:
     root = await cats.resolve_create_category(migrated_pool, "A", None)
     child = await cats.resolve_create_category(migrated_pool, "B", root)
-    response = await client.post(f"/categories/{root}/move", data={"parent_id": str(child)})
-    assert response.status_code == 422
-    assert "boucle" in response.text
-    ok = await client.post(f"/categories/{child}/move", data={"parent_id": ""})
-    assert ok.status_code == 303
+    dialog = (await client.get(f"/categories/{root}/edit")).text
+    assert f'<option value="{child}"' not in dialog
+    forged = await client.post(f"/categories/{root}", data=_form(label="A", parent_id=str(child)))
+    assert forged.status_code == 200 and "boucle" in forged.text
+    assert await migrated_pool.fetchval("SELECT label FROM categories WHERE id=$1", root) == "A"
 
 
-async def test_delete_in_use_shows_counts(
+async def test_edit_invalid_field_writes_nothing(
+    client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
+) -> None:
+    a = await cats.resolve_create_category(migrated_pool, "A", None)
+    b = await cats.resolve_create_category(migrated_pool, "B", None)
+    refused = await client.post(
+        f"/categories/{b}", data=_form(label="B", parent_id=str(a), position="x")
+    )
+    assert "Ordre d'affichage" in refused.text
+    assert await migrated_pool.fetchval("SELECT parent_id FROM categories WHERE id=$1", b) is None
+
+
+async def test_delete_in_use_shows_reason_in_dialog(
     client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
 ) -> None:
     root = await cats.resolve_create_category(migrated_pool, "A", None)
-    await cats.resolve_create_category(migrated_pool, "B", root)
-    response = await client.post(f"/categories/{root}/delete")
-    assert response.status_code == 422
-    assert "1 sous-catégorie" in response.text
+    leaf = await cats.resolve_create_category(migrated_pool, "B", root)
+    refused = await client.post(f"/categories/{root}/delete")
+    assert refused.status_code == 200 and "1 sous-catégorie" in refused.text
+    done = await client.post(f"/categories/{leaf}/delete")
+    assert done.status_code == 204
     assert (await client.post("/categories/98765/delete")).status_code == 404
 
 
-async def test_mappings_add_and_remove(
+async def test_mappings_add_and_remove_in_dialog(
     client: httpx.AsyncClient, migrated_pool: asyncpg.Pool
 ) -> None:
     cat = await cats.resolve_create_category(migrated_pool, "Robes", None)
     added = await client.post(
         f"/categories/{cat}/mappings", data={"platform": "vinted", "platform_category_id": "12"}
     )
-    assert added.status_code == 303
-    page = await client.get(f"/categories/{cat}")
-    assert "vinted</strong> → 12" in page.text
+    assert added.status_code == 200 and "<strong>vinted</strong>" in added.text
+    assert "vinted → 12" in (await client.get("/categories")).text
     bad = await client.post(
         f"/categories/{cat}/mappings", data={"platform": "a b", "platform_category_id": "1"}
     )
-    assert bad.status_code == 422
+    assert "minuscules" in bad.text
     removed = await client.post(f"/categories/{cat}/mappings/vinted/delete")
-    assert removed.status_code == 303
+    assert removed.status_code == 200 and "Aucune correspondance" in removed.text
     assert (await client.post(f"/categories/{cat}/mappings/vinted/delete")).status_code == 404
 
 
@@ -141,5 +190,10 @@ async def test_candidate_category_routes_unknown_candidate(
     assert (await client.post(path, data={"category_id": ""})).status_code == 404
 
 
-async def test_unknown_category_page_is_404(client: httpx.AsyncClient) -> None:
-    assert (await client.get("/categories/31337")).status_code == 404
+async def test_unknown_category_edit_is_404_and_old_link_redirects(
+    client: httpx.AsyncClient,
+) -> None:
+    assert (await client.get("/categories/31337/edit")).status_code == 404
+    assert (await client.post("/categories/31337", data=_form())).status_code == 404
+    old = await client.get("/categories/31337")
+    assert old.status_code == 303 and old.headers["location"] == "/categories"

@@ -126,3 +126,12 @@ button.secondary { background: #eef1f6; color: var(--fg); }
 .msg ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
 .msg p { margin: 0; }
 .secrets-table code { white-space: nowrap; }
+.dialog-wide { width: min(46rem, calc(100vw - 2rem)); }
+.dialog-form.flush { padding: 0; }
+.dialog-form textarea { font: inherit; padding: 0.5rem 0.65rem; border: 1px solid var(--line);
+  border-radius: 6px; resize: vertical; }
+.form-grid { display: grid; gap: 0.25rem 1rem; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+.form-field { display: grid; gap: 0.25rem; }
+.dialog-section { border-top: 1px solid var(--line); margin-top: 0.75rem; padding-top: 0.25rem; display: grid; gap: 0.5rem; }
+.dialog-section h3 { margin: 0.5rem 0 0; }
+.cat-name { white-space: nowrap; }
