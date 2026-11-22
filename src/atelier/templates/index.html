@@ -1,2 +1,35 @@
 {% extends "base.html" %}
-{% block content %}{% endblock %}
+{% block title %}Candidates — Atelier d'annonces{% endblock %}
+{% block content %}
+<section class="capture">
+  <h1>Capturer un article</h1>
+  <form method="post" action="/capture" class="capture-form">
+    <label for="capture-url">URL de l'article sur le site d'achat</label>
+    <div class="capture-row">
+      <input id="capture-url" name="url" type="text" inputmode="url" autocomplete="off"
+             placeholder="https://…" value="{{ submitted or '' }}" required autofocus>
+      <button type="submit">Capturer</button>
+    </div>
+  </form>
+  {% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+  {% if flash %}<p class="msg msg-ok" role="status">{{ flash }}</p>{% endif %}
+</section>
+
+<section class="queue">
+  <h2>Candidates</h2>
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="queue-table">
+      <thead>
+        <tr><th>Titre</th><th>Catégorie</th><th>Statut</th><th class="num">Liens d'achat</th><th>Capturée le</th></tr>
+      </thead>
+      <tbody id="candidate-rows">
+        {% include "_candidate_rows.html" %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">Aucune candidate pour l'instant. Collez l'URL d'un article ci-dessus pour créer la première.</p>
+  {% endif %}
+</section>
+{% endblock %}

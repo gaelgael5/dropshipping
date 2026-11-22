@@ -6,7 +6,7 @@ import asyncpg
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from atelier.api import health
+from atelier.api import capture, health
 from atelier.config import Settings
 from atelier.web import pages
 
@@ -28,4 +28,5 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     # pour qu'elles évoluent (auth, préfixe, format d'erreur) indépendamment.
     app.include_router(pages.router)
     app.include_router(health.router)
+    app.include_router(capture.router)
     return app

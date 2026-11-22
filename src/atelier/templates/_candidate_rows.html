@@ -1,0 +1,23 @@
+{% for row in rows %}
+<tr id="candidate-{{ row.id }}"{% if highlight == row.id %} class="highlight"{% endif %}>
+  <td>
+    {% if row.title %}{{ row.title }}
+    {% else %}<span class="muted">Sans titre</span>{% if row.first_link_host %} <span class="host">{{ row.first_link_host }}</span>{% endif %}
+    {% endif %}
+  </td>
+  {# La catégorie arrive avec le ticket de l'arbre de catégories. #}
+  <td><span class="muted">Non classée</span></td>
+  <td><span class="badge">{{ row.status }}</span></td>
+  <td class="num">{{ row.link_count }}</td>
+  <td>{{ row.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+</tr>
+{% endfor %}
+{% if next_before %}
+<tr id="load-more">
+  <td colspan="5">
+    {# Suite chargée à la demande : la page ne porte jamais la table entière. #}
+    <button type="button" hx-get="/candidates/rows?before={{ next_before }}"
+            hx-target="#load-more" hx-swap="outerHTML">Afficher les suivantes</button>
+  </td>
+</tr>
+{% endif %}

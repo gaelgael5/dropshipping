@@ -1,13 +1,47 @@
 /* Polices système uniquement : aucune police chargée depuis un CDN. */
 :root {
   --fg: #1d1d1f;
+  --muted: #6e6e73;
   --bg: #fafafa;
+  --card: #fff;
   --line: #e2e2e2;
+  --accent: #2b59c3;
+  --ok-bg: #e7f5ec;
+  --ok-fg: #1d6b3a;
+  --err-bg: #fdecec;
+  --err-fg: #a12622;
+  --hl: #fff8d6;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--fg);
   background: var(--bg);
 }
 body { margin: 0; }
-.site-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); background: #fff; }
+h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+h2 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; }
+.site-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); background: var(--card); }
 .brand { font-weight: 600; color: inherit; text-decoration: none; }
 .content { padding: 1rem; max-width: 72rem; margin: 0 auto; }
+
+.capture { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+.capture-form label { display: block; color: var(--muted); font-size: 0.9rem; margin-bottom: 0.4rem; }
+.capture-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.capture-row input { flex: 1 1 18rem; min-width: 0; padding: 0.55rem 0.7rem; font: inherit;
+  border: 1px solid var(--line); border-radius: 6px; }
+button { padding: 0.55rem 1rem; font: inherit; border: 0; border-radius: 6px;
+  background: var(--accent); color: #fff; cursor: pointer; }
+.msg { margin: 0.75rem 0 0; padding: 0.5rem 0.75rem; border-radius: 6px; }
+.msg-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.msg-error { background: var(--err-bg); color: var(--err-fg); }
+
+.table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.queue-table { width: 100%; border-collapse: collapse; }
+.queue-table th, .queue-table td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); }
+.queue-table th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.queue-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.queue-table tr.highlight td { background: var(--hl); }
+#load-more td { text-align: center; }
+.muted { color: var(--muted); }
+.host { font-size: 0.85rem; color: var(--muted); }
+.badge { font-size: 0.8rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: #eef1f6; }
+.empty { color: var(--muted); padding: 1.5rem; text-align: center; background: var(--card);
+  border: 1px dashed var(--line); border-radius: 8px; }

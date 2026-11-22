@@ -47,13 +47,17 @@ async def test_health_unreachable_database_returns_503(settings: Settings) -> No
     assert response.json()["database"] == "unreachable"
 
 
-async def test_home_page_uses_layout_with_local_htmx(settings: Settings) -> None:
-    async with _client(settings, _UnreachablePool()) as client:
+async def test_home_page_uses_layout_with_local_htmx(
+    settings: Settings, migrated_pool: asyncpg.Pool
+) -> None:
+    async with _client(settings, migrated_pool) as client:
         page = await client.get("/")
         script = await client.get("/static/htmx.min.js")
     assert page.status_code == 200
     assert 'class="site-header"' in page.text
     assert "/static/htmx.min.js" in page.text
-    assert "https://" not in page.text
+    # Aucune ressource externe chargée (le texte d'aide du champ peut contenir https://).
+    assert 'src="https://' not in page.text
+    assert 'href="https://' not in page.text
     assert script.status_code == 200
     assert "htmx" in script.text[:200]

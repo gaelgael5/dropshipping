@@ -42,3 +42,14 @@ async def pool(database_dsn: str) -> AsyncIterator[asyncpg.Pool]:
         yield created
     finally:
         await created.close()
+
+
+@pytest.fixture
+async def migrated_pool(pool: asyncpg.Pool) -> AsyncIterator[asyncpg.Pool]:
+    # La base jetable est partagée par la session : chaque test repart d'un schéma
+    # vide, puis des migrations réellement livrées (pas d'un schéma de test à part).
+    from atelier.migrations_runner import MIGRATIONS_DIR, resolve_apply_migrations
+
+    await pool.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+    await resolve_apply_migrations(pool, MIGRATIONS_DIR)
+    yield pool
