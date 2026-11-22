@@ -1,0 +1,4 @@
+<div id="check-{{ name }}" class="msg {{ 'msg-ok' if result.ok else 'msg-error' }}" role="status">
+  <p>{{ "Connexion réussie." if result.ok else "Connexion en échec." }}</p>
+  <ul>{% for line in result.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+</div>

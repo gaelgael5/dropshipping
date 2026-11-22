@@ -16,6 +16,7 @@ from atelier.web import (
     connectors_page,
     pages,
     photos,
+    providers_page,
     secrets_page,
     validation_page,
 )
@@ -44,6 +45,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     app.include_router(validation_page.router)
     app.include_router(photos.router)
     app.include_router(secrets_page.router)
+    app.include_router(providers_page.router)
     app.include_router(health.router)
     app.include_router(capture.router)
     app.include_router(connectors_page.router)

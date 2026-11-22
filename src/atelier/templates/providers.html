@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Fournisseurs d'IA — Atelier d'annonces{% endblock %}
+{% block content %}
+<h1>Fournisseurs d'IA</h1>
+<p class="muted">Gemini et OpenAI servent à générer les photos portées et à rédiger les annonces.
+Leurs clefs se rangent sur la page <a href="/secrets">Secrets</a>, sous la référence indiquée.</p>
+{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+{% for p in providers %}
+<section class="capture">
+  <h2>{{ p.label }}</h2>
+  <p>Clef : <code>{{ p.secret_ref }}</code> —
+    {% if p.secret_ref in present_refs %}<span class="badge">présente</span>
+    {% else %}<strong>absente</strong> : <a href="/secrets">l'ajouter</a>{% endif %}</p>
+  <form method="post" action="/providers/{{ p.name }}/models" class="upload-form">
+    <label for="tm-{{ p.name }}">Modèle texte</label>
+    <input id="tm-{{ p.name }}" name="text_model" value="{{ p.text_model }}" required maxlength="100">
+    <label for="im-{{ p.name }}">Modèle image</label>
+    <input id="im-{{ p.name }}" name="image_model" value="{{ p.image_model }}" required maxlength="100">
+    <button type="submit">Enregistrer les modèles</button>
+  </form>
+  <button type="button" hx-post="/providers/{{ p.name }}/check" hx-target="#check-{{ p.name }}"
+          hx-swap="outerHTML">Tester la connexion</button>
+  <div id="check-{{ p.name }}"></div>
+</section>
+{% endfor %}
+{% endblock %}

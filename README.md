@@ -67,3 +67,11 @@ authentifier, gérées sur la page **Connecteurs** :
 - **Agents** : clef d'API créée sur la page (affichée une seule fois), passée dans
   `Authorization: Bearer …` ou `X-Api-Key: …` (ce dernier traverse le portail, qui retire
   `Authorization`).
+
+## Fournisseurs d'IA (Gemini, OpenAI)
+
+La page **Fournisseurs** règle, pour Google Gemini et OpenAI, le modèle texte et le modèle
+image, et propose un test de connexion : il lit la fiche des deux modèles (rien de facturé)
+et dit si la clef manque, est refusée, ou si un modèle est inconnu. Les clefs se rangent dans
+le coffre (page **Secrets**) sous `ia/gemini_api_key` et `ia/openai_api_key` — pour OpenAI,
+une clef de l'API de la plateforme : un abonnement ChatGPT ne donne pas accès à l'API.
