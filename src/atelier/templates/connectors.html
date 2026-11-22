@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Connecteurs — Atelier d'annonces{% endblock %}
+{% block content %}
+<h1>Connecteurs MCP</h1>
+<p class="muted">Brancher un assistant sur l'atelier. Adresse du serveur MCP :
+<code>{{ mcp_url }}</code></p>
+{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+
+<section class="capture">
+  <h2>Claude web (claude.ai)</h2>
+  <ol>
+    <li>Dans claude.ai : <em>Réglages → Connecteurs → Ajouter un connecteur personnalisé</em>,
+      avec l'adresse ci-dessus.</li>
+    <li>claude.ai ouvre la page d'autorisation de l'atelier : saisissez-y un code d'appairage
+      généré ici.</li>
+  </ol>
+  {% if pairing_code %}
+  <p class="msg msg-ok" role="status">Code d'appairage : <strong class="code-big">{{ pairing_code }}</strong>
+    — valable {{ pairing_ttl }} minutes, utilisable une seule fois.</p>
+  {% endif %}
+  <form method="post" action="/connectors/pairing-code" class="inline">
+    <button type="submit">Générer un code d'appairage</button>
+  </form>
+  {% if clients %}
+  <div class="table-wrap">
+    <table class="queue-table">
+      <thead><tr><th>Client</th><th>Retour</th><th>Inscrit le</th><th>Jetons actifs</th><th>Dernier usage</th><th></th></tr></thead>
+      <tbody>
+      {% for c in clients %}
+        <tr>
+          <td>{{ c.client_name }}</td>
+          <td>{% for u in c.redirect_uris %}<code>{{ u }}</code> {% endfor %}</td>
+          <td>{{ c.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>{{ c.active_tokens }}</td>
+          <td>{{ c.last_used_at.strftime("%d/%m/%Y %H:%M") if c.last_used_at else "jamais" }}</td>
+          <td>{% if c.revoked_at %}révoqué{% else %}
+            <form method="post" action="/connectors/clients/{{ c.client_id }}/revoke" class="inline">
+              <button type="submit" class="link">Révoquer</button></form>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="capture">
+  <h2>Clefs d'API des agents</h2>
+  <p class="muted">À passer dans l'en-tête <code>Authorization: Bearer …</code> ou
+  <code>X-Api-Key: …</code> (ce dernier traverse le portail).</p>
+  {% if new_key %}
+  <div class="msg msg-ok" role="status">
+    <p>Clef « {{ new_key_name }} » créée. <strong>Copiez-la maintenant : elle ne sera plus jamais affichée.</strong></p>
+    <p><code class="code-big">{{ new_key }}</code></p>
+  </div>
+  {% endif %}
+  <form method="post" action="/connectors/api-keys" class="upload-form">
+    <label for="key-name">Nom de la clef</label>
+    <input id="key-name" name="name" maxlength="100" required placeholder="Agent de rédaction">
+    <button type="submit">Créer une clef</button>
+  </form>
+  {% if keys %}
+  <div class="table-wrap">
+    <table class="queue-table">
+      <thead><tr><th>Nom</th><th>Début</th><th>Créée le</th><th>Dernier usage</th><th></th></tr></thead>
+      <tbody>
+      {% for k in keys %}
+        <tr>
+          <td>{{ k.name }}</td>
+          <td><code>{{ k.prefix }}…</code></td>
+          <td>{{ k.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>{{ k.last_used_at.strftime("%d/%m/%Y %H:%M") if k.last_used_at else "jamais" }}</td>
+          <td>{% if k.revoked_at %}révoquée{% else %}
+            <form method="post" action="/connectors/api-keys/{{ k.id }}/revoke" class="inline">
+              <button type="submit" class="link">Révoquer</button></form>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

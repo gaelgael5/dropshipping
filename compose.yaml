@@ -31,6 +31,8 @@ services:
       ATELIER_CAPTURE_TOKEN: ${ATELIER_CAPTURE_TOKEN:?définir ATELIER_CAPTURE_TOKEN}
       ATELIER_SECRETS_KEY: ${ATELIER_SECRETS_KEY:?définir ATELIER_SECRETS_KEY}
       ATELIER_HTTP_HOST: 0.0.0.0
+      # Facultative : adresse publique annoncée aux clients OAuth/MCP (claude.ai).
+      ATELIER_PUBLIC_URL: ${ATELIER_PUBLIC_URL:-}
     volumes:
       - images:/data/images
     ports:

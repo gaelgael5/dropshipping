@@ -96,3 +96,5 @@ form.inline { display: inline; }
 .validation { margin: 0.5rem 0 1rem; }
 .validation .msg ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
 .validation .msg p { margin: 0; }
+
+.code-big { font-size: 1.15em; letter-spacing: .05em; word-break: break-all; }

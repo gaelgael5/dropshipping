@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Autoriser un connecteur — Atelier d'annonces{% endblock %}
+{% block content %}
+<h1>Autoriser un connecteur</h1>
+{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+{% if req %}
+<section class="capture">
+  <p><strong>{{ req.client_name }}</strong> demande l'accès à l'atelier en lecture
+  (candidates, fiches, validation). Retour vers <code>{{ redirect_host }}</code>.</p>
+  <p class="muted">Pour autoriser, saisissez le code d'appairage affiché sur la page
+  <em>Connecteurs</em> de l'atelier. Il est valable 10 minutes et ne sert qu'une fois.</p>
+  <form method="post" action="/oauth/authorize" class="upload-form">
+    {% for key, value in params.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <label for="pairing">Code d'appairage</label>
+    <input id="pairing" name="pairing" autocomplete="off" required placeholder="ABCD-EFGH" maxlength="20">
+    <button type="submit" name="decision" value="approve">Autoriser</button>
+    <button type="submit" name="decision" value="deny" formnovalidate class="link">Refuser</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

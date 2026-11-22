@@ -10,6 +10,9 @@ from atelier.errors import StartupError
 
 ENV_PREFIX = "ATELIER_"
 _HEX_KEY_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+_PUBLIC_URL_RE = re.compile(
+    r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*[A-Za-z0-9._~-])?$"
+)
 
 
 class Settings(BaseSettings):
@@ -29,6 +32,9 @@ class Settings(BaseSettings):
     http_host: str = "127.0.0.1"
     http_port: int = 8000
     db_connect_timeout_s: float = 10.0
+    # Adresse publique (sans / final) annoncée aux clients OAuth/MCP. Facultative :
+    # sans elle, l'adresse de la requête est utilisée, ce qui suffit en accès direct.
+    public_url: str | None = None
 
     @field_validator("secrets_key")
     @classmethod
@@ -36,6 +42,15 @@ class Settings(BaseSettings):
         # Le message ne cite jamais la valeur reçue (voir _describe_invalid_settings).
         if not _HEX_KEY_RE.fullmatch(value.get_secret_value()):
             raise ValueError("64 caractères hexadécimaux attendus (openssl rand -hex 32)")
+        return value
+
+    @field_validator("public_url")
+    @classmethod
+    def _check_public_url(cls, value: str | None) -> str | None:
+        if not value:
+            return None  # variable présente mais vide (compose) = non configurée
+        if not _PUBLIC_URL_RE.fullmatch(value):
+            raise ValueError("adresse http(s) sans / final, ni requête, ni fragment attendue")
         return value
 
     def secrets_key_bytes(self) -> bytes:

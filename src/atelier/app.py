@@ -6,13 +6,14 @@ import asyncpg
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from atelier.api import capture, health
+from atelier.api import capture, health, mcp_route, oauth_routes
 from atelier.config import Settings
 from atelier.images.store import ImageStore
 from atelier.vault.cipher import SecretCipher
 from atelier.web import (
     candidate_page,
     categories_page,
+    connectors_page,
     pages,
     photos,
     secrets_page,
@@ -45,4 +46,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     app.include_router(secrets_page.router)
     app.include_router(health.router)
     app.include_router(capture.router)
+    app.include_router(connectors_page.router)
+    app.include_router(oauth_routes.router)
+    app.include_router(mcp_route.router)
     return app

@@ -21,6 +21,7 @@ L'application écoute sur <http://localhost:8000> (port côté hôte réglable p
 | `ATELIER_DATABASE_URL` | chaîne de connexion PostgreSQL (obligatoire) |
 | `ATELIER_IMAGES_ROOT` | racine du volume d'images, doit être inscriptible (obligatoire) |
 | `ATELIER_CAPTURE_TOKEN` | jeton du raccourci de capture (obligatoire) |
+| `ATELIER_PUBLIC_URL` | adresse publique annoncée aux clients OAuth/MCP, sans `/` final (facultative) |
 | `ATELIER_SECRETS_KEY` | clef maîtresse du coffre de secrets, 64 caractères hexadécimaux (obligatoire ; à sauvegarder à part de la base) |
 | `ATELIER_HTTP_HOST` / `ATELIER_HTTP_PORT` | adresse d'écoute (défaut `127.0.0.1:8000`) |
 | `ATELIER_DB_CONNECT_TIMEOUT_S` | délai de connexion à la base au démarrage (défaut 10 s) |
@@ -54,3 +55,15 @@ PORTAL_TOKEN=<login>:<code> ./dev-deploy.sh --exposer-seulement   # déclaration
 Le script se met à jour depuis `origin/dev`, génère les secrets manquants dans `.env`
 (sans jamais écraser l'existant), construit, relance, vérifie le schéma et la santé,
 puis déclare le service au portail si un code TOTP est fourni.
+
+## Connecteurs MCP
+
+Le serveur MCP de l'atelier répond sur `POST /mcp` (HTTP, sans état). Deux façons de s'y
+authentifier, gérées sur la page **Connecteurs** :
+
+- **Claude web** : connecteur personnalisé claude.ai, en OAuth 2.1 (inscription dynamique,
+  PKCE S256). L'autorisation exige un code d'appairage à usage unique généré sur la page.
+  claude.ai doit pouvoir joindre l'atelier depuis Internet à l'adresse `ATELIER_PUBLIC_URL`.
+- **Agents** : clef d'API créée sur la page (affichée une seule fois), passée dans
+  `Authorization: Bearer …` ou `X-Api-Key: …` (ce dernier traverse le portail, qui retire
+  `Authorization`).

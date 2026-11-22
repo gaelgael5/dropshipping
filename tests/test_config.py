@@ -11,7 +11,7 @@ SECRET_PASSWORD = "s3cr3t-Zq9"
 
 
 def _set_env(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
-    for key in ("DATABASE_URL", "IMAGES_ROOT", "CAPTURE_TOKEN", "HTTP_PORT"):
+    for key in ("DATABASE_URL", "IMAGES_ROOT", "CAPTURE_TOKEN", "HTTP_PORT", "PUBLIC_URL"):
         monkeypatch.delenv(f"ATELIER_{key}", raising=False)
     # Clef maîtresse valide par défaut : ces tests portent sur les autres variables.
     monkeypatch.setenv("ATELIER_SECRETS_KEY", "cd" * 32)
@@ -88,3 +88,29 @@ def test_load_settings_bad_secrets_key_refused_without_echo(
     assert "ATELIER_SECRETS_KEY" in str(exc.value)
     if key:
         assert key not in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("", None),
+        ("https://a.example", "https://a.example"),
+        ("http://h:8110/x", "http://h:8110/x"),
+    ],
+)
+def test_load_settings_public_url_accepted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, raw: str, expected: str | None
+) -> None:
+    _set_env(monkeypatch, DATABASE_URL="postgresql://u:p@h/a", IMAGES_ROOT=str(tmp_path),
+             CAPTURE_TOKEN="t", PUBLIC_URL=raw)  # fmt: skip
+    assert load_settings().public_url == expected
+
+
+@pytest.mark.parametrize("raw", ["https://a.example/", "ftp://a", "https://a.example?x=1"])
+def test_load_settings_public_url_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, raw: str
+) -> None:
+    _set_env(monkeypatch, DATABASE_URL="postgresql://u:p@h/a", IMAGES_ROOT=str(tmp_path),
+             CAPTURE_TOKEN="t", PUBLIC_URL=raw)  # fmt: skip
+    with pytest.raises(StartupError, match="ATELIER_PUBLIC_URL"):
+        load_settings()
