@@ -55,7 +55,9 @@ class ProviderClient:
             except httpx.HTTPError as exc:
                 raise transport_error(self.config.name, exc) from None
         if response.is_error:
-            raise classify_response(self.config.name, response)
+            raise classify_response(
+                self.config.name, response, self.config.api_key.get_secret_value()
+            )
         try:
             return response.json()
         except ValueError:

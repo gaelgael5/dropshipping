@@ -148,3 +148,16 @@ async def test_gemini_answer_without_image_is_explicit() -> None:
     body = {"candidates": [{"content": {"parts": [{"text": "je ne peux pas"}]}}]}
     with pytest.raises(ProviderError, match="sans image"):
         await _gemini(lambda _: httpx.Response(200, json=body)).edit_image("x", [ImageInput(b"a")])
+
+
+async def test_provider_message_echoing_key_fragment_is_redacted() -> None:
+    # Constaté sur test1 : OpenAI recopie début et fin de la clef refusée dans son message.
+    echoed = f"Incorrect API key provided: {KEY[:8]}*****************{KEY[-4:]}. See docs."
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": {"message": echoed, "code": "invalid_api_key"}})
+
+    with pytest.raises(ProviderError) as exc:
+        await _openai(handler).check_model("m")
+    assert KEY[:8] not in str(exc.value) and KEY[-4:] not in str(exc.value)
+    assert "Incorrect API key provided" in str(exc.value)

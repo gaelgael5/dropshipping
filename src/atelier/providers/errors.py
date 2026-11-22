@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 
 import httpx
@@ -32,11 +33,25 @@ def _message(payload: object) -> tuple[str, str]:
     return str(err.get("message") or "")[:300], code
 
 
-def classify_response(provider: str, response: httpx.Response) -> ProviderError:
+# Fragment de clef masqué tel que les fournisseurs le recopient (« sk-ab12****wxyz »).
+_MASKED_KEY_RE = re.compile(r"\S*\*{3,}\S*")
+
+
+def _redact(message: str, secret: str) -> str:
+    # Constaté sur l'API OpenAI : une clef refusée est recopiée dans le message, début
+    # et fin en clair. On retire la clef entière ET ses fragments masqués : ce message
+    # est montré à l'écran et ne doit rien livrer de la clef, même partiellement.
+    if secret:
+        message = message.replace(secret, "[clef masquée]")
+    return _MASKED_KEY_RE.sub("[clef masquée]", message)
+
+
+def classify_response(provider: str, response: httpx.Response, secret: str = "") -> ProviderError:
     try:
         message, code = _message(response.json())
     except ValueError:
         message, code = "", ""
+    message = _redact(message, secret)
     status = response.status_code
     # Gemini répond 400 (et non 401) à une clef invalide : on lit la raison.
     if status in (401, 403) or "API_KEY_INVALID" in code:
@@ -49,8 +64,7 @@ def classify_response(provider: str, response: httpx.Response) -> ProviderError:
         kind = ErrorKind.UNAVAILABLE
     else:
         kind = ErrorKind.REQUEST
-    # Le message du fournisseur ne contient pas la clef (elle part en en-tête, jamais
-    # dans l'URL) : il peut être montré et journalisé tel quel.
+    # Message expurgé ci-dessus : il peut être montré et journalisé.
     return ProviderError(provider, kind, f"HTTP {status} {message}".strip())
 
 
