@@ -71,19 +71,54 @@ async def test_empty_value_and_unknown_category_refused(migrated_pool: asyncpg.P
     assert await migrated_pool.fetchval("SELECT count(*) FROM secrets") == 0
 
 
-async def test_replace_value_then_delete(migrated_pool: asyncpg.Pool) -> None:
+async def test_update_with_empty_value_keeps_current_value(migrated_pool: asyncpg.Pool) -> None:
+    ia = await _ia(migrated_pool)
+    sid = await vault.resolve_add_secret(migrated_pool, CIPHER, ia, "k", VALUE)
+    await vault.resolve_update_secret(migrated_pool, CIPHER, sid, ia, "k", "décrit", "  ")
+    assert (
+        await vault.resolve_secret_value(migrated_pool, CIPHER, "ia/k")
+    ).get_secret_value() == VALUE
+    async with migrated_pool.acquire() as conn:
+        info = await vault.db_get_secret(conn, sid)
+    assert info is not None and info.description == "décrit"
+
+
+async def test_update_value_rename_and_move_category(migrated_pool: asyncpg.Pool) -> None:
+    ia = await _ia(migrated_pool)
+    other = int(
+        await migrated_pool.fetchval("SELECT id FROM secret_categories WHERE slug='divers'")
+    )
+    sid = await vault.resolve_add_secret(migrated_pool, CIPHER, ia, "k", VALUE)
+    await vault.resolve_update_secret(migrated_pool, CIPHER, sid, other, "k2", "", "nouvelle")
+    # Déplacée et renommée sans rechiffrement : la valeur se lit sous la nouvelle référence.
+    assert (
+        await vault.resolve_secret_value(migrated_pool, CIPHER, "divers/k2")
+    ).get_secret_value() == "nouvelle"
+    with pytest.raises(vault.VaultNotFoundError):
+        await vault.resolve_secret_value(migrated_pool, CIPHER, "ia/k")
+
+
+async def test_update_refusals(migrated_pool: asyncpg.Pool) -> None:
+    ia = await _ia(migrated_pool)
+    sid = await vault.resolve_add_secret(migrated_pool, CIPHER, ia, "k", VALUE)
+    await vault.resolve_add_secret(migrated_pool, CIPHER, ia, "autre", VALUE)
+    with pytest.raises(vault.VaultError, match="existe déjà"):
+        await vault.resolve_update_secret(migrated_pool, CIPHER, sid, ia, "autre", "", "")
+    with pytest.raises(vault.VaultError, match="nom du secret"):
+        await vault.resolve_update_secret(migrated_pool, CIPHER, sid, ia, "Bad", "", "")
+    with pytest.raises(vault.VaultNotFoundError):
+        await vault.resolve_update_secret(migrated_pool, CIPHER, sid, 99_999, "k", "", "")
+    with pytest.raises(vault.VaultNotFoundError):
+        await vault.resolve_update_secret(migrated_pool, CIPHER, 99_999, ia, "k", "", "")
+
+
+async def test_delete_secret(migrated_pool: asyncpg.Pool) -> None:
     sid = await vault.resolve_add_secret(
         migrated_pool, CIPHER, await _ia(migrated_pool), "k", VALUE
     )
-    await vault.resolve_replace_secret_value(migrated_pool, CIPHER, sid, "nouvelle")
-    assert (
-        await vault.resolve_secret_value(migrated_pool, CIPHER, "ia/k")
-    ).get_secret_value() == "nouvelle"
     await vault.resolve_delete_secret(migrated_pool, sid)
     with pytest.raises(vault.VaultNotFoundError):
         await vault.resolve_delete_secret(migrated_pool, sid)
-    with pytest.raises(vault.VaultNotFoundError):
-        await vault.resolve_replace_secret_value(migrated_pool, CIPHER, sid, "x")
 
 
 async def test_category_lifecycle_and_non_empty_refusal(migrated_pool: asyncpg.Pool) -> None:
@@ -96,10 +131,12 @@ async def test_category_lifecycle_and_non_empty_refusal(migrated_pool: asyncpg.P
     await vault.resolve_add_secret(migrated_pool, CIPHER, cid, "colissimo", VALUE)
     with pytest.raises(vault.VaultError, match="1 secret"):
         await vault.resolve_delete_category(migrated_pool, cid)
-    listing = {c.slug: c for c in await vault.db_list_vault(migrated_pool)}
-    assert listing["transport"].label == "Livreurs"
-    assert [s.ref for s in listing["transport"].secrets] == ["transport/colissimo"]
-    await vault.resolve_delete_secret(migrated_pool, listing["transport"].secrets[0].id)
+    async with migrated_pool.acquire() as conn:
+        cats = {c.slug: c for c in await vault.db_list_categories(conn)}
+        secrets = await vault.db_list_secrets(conn)
+    assert cats["transport"].label == "Livreurs" and cats["transport"].secret_count == 1
+    assert [(s.ref, s.category_label) for s in secrets] == [("transport/colissimo", "Livreurs")]
+    await vault.resolve_delete_secret(migrated_pool, secrets[0].id)
     await vault.resolve_delete_category(migrated_pool, cid)
     with pytest.raises(vault.VaultNotFoundError):
         await vault.resolve_delete_category(migrated_pool, cid)
@@ -112,7 +149,8 @@ async def test_logs_carry_ref_never_value(migrated_pool: asyncpg.Pool) -> None:
         sid = await vault.resolve_add_secret(
             migrated_pool, CIPHER, await _ia(migrated_pool), "k", VALUE
         )
-        await vault.resolve_replace_secret_value(migrated_pool, CIPHER, sid, VALUE + "2")
+        ia = await _ia(migrated_pool)
+        await vault.resolve_update_secret(migrated_pool, CIPHER, sid, ia, "k", "", VALUE + "2")
         await vault.resolve_secret_value(migrated_pool, CIPHER, "ia/k")
     assert logs and all(VALUE not in str(entry) for entry in logs)
     assert logs[0]["ref"] == "ia/k"

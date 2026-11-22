@@ -98,3 +98,26 @@ form.inline { display: inline; }
 .validation .msg p { margin: 0; }
 
 .code-big { font-size: 1.15em; letter-spacing: .05em; word-break: break-all; }
+
+/* En-tête de page avec actions, fenêtres modales (secrets). */
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+.page-head h1 { margin: 0; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+button.secondary { background: #eef1f6; color: var(--fg); }
+.row-actions { white-space: nowrap; text-align: right; }
+.row-actions button + button { margin-left: 0.75rem; }
+.secrets-table td { vertical-align: middle; }
+.dialog { border: 0; border-radius: 10px; padding: 0; width: min(34rem, calc(100vw - 2rem));
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .2); }
+.dialog::backdrop { background: rgba(20, 20, 30, .35); }
+.dialog-form { display: grid; gap: 0.4rem; padding: 1.25rem; }
+.dialog-form h2 { margin: 0 0 0.5rem; }
+.dialog-form label { color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem; }
+.dialog-form input, .dialog-form select, .form-row input { font: inherit; padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line); border-radius: 6px; background: #fff; min-width: 0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+.hint { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.form-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.form-row input { flex: 1 1 10rem; }
+.inline-edit { display: flex; gap: 0.5rem; align-items: center; }
+.inline-edit input { font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; min-width: 0; }

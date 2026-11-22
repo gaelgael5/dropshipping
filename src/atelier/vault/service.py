@@ -39,6 +39,7 @@ class SecretInfo:
     description: str | None
     updated_at: datetime
     last_used_at: datetime | None
+    category_label: str
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ class CategoryInfo:
     slug: str
     label: str
     description: str | None
-    secrets: list[SecretInfo]
+    secret_count: int
 
 
 def _label(raw: str) -> str:
@@ -77,23 +78,30 @@ def _check(pattern: re.Pattern[str], raw: str, what: str) -> str:
     return value
 
 
-async def db_list_vault(conn: repo._Conn) -> list[CategoryInfo]:
-    cats = await conn.fetch("SELECT * FROM secret_categories ORDER BY position, label, id")
+_SELECT_VAULT_ROWS = (
+    "SELECT s.id, s.category_id, c.slug || '/' || s.name AS ref, s.name, s.description,"
+    " s.updated_at, s.last_used_at, c.label AS category_label"
+    " FROM secrets s JOIN secret_categories c ON c.id = s.category_id"
+)
+
+
+async def db_list_secrets(conn: repo._Conn) -> list[SecretInfo]:
+    rows = await conn.fetch(f"{_SELECT_VAULT_ROWS} ORDER BY c.position, c.label, s.name")
+    return [SecretInfo(**dict(r)) for r in rows]
+
+
+async def db_get_secret(conn: repo._Conn, secret_id: int) -> SecretInfo | None:
+    row = await conn.fetchrow(f"{_SELECT_VAULT_ROWS} WHERE s.id = $1", secret_id)
+    return SecretInfo(**dict(row)) if row else None
+
+
+async def db_list_categories(conn: repo._Conn) -> list[CategoryInfo]:
     rows = await conn.fetch(
-        "SELECT s.id, s.category_id, s.name, s.description, s.updated_at, s.last_used_at,"
-        " c.slug FROM secrets s JOIN secret_categories c ON c.id = s.category_id"
-        " ORDER BY s.name"
-    )  # fmt: skip
-    by_cat: dict[int, list[SecretInfo]] = {}
-    for r in rows:
-        by_cat.setdefault(r["category_id"], []).append(
-            SecretInfo(r["id"], r["category_id"], f"{r['slug']}/{r['name']}", r["name"],
-                       r["description"], r["updated_at"], r["last_used_at"])
-        )  # fmt: skip
-    return [
-        CategoryInfo(c["id"], c["slug"], c["label"], c["description"], by_cat.get(c["id"], []))
-        for c in cats
-    ]
+        "SELECT c.id, c.slug, c.label, c.description, count(s.id) AS secret_count"
+        " FROM secret_categories c LEFT JOIN secrets s ON s.category_id = c.id"
+        " GROUP BY c.id ORDER BY c.position, c.label, c.id"
+    )
+    return [CategoryInfo(**dict(r)) for r in rows]
 
 
 async def resolve_create_category(pool: asyncpg.Pool, slug: str, label: str) -> int:
@@ -155,23 +163,36 @@ async def resolve_add_secret(
                 cipher.encrypt(clean_value, secret_id),
             )  # fmt: skip
         except asyncpg.UniqueViolationError:
-            raise VaultError(f"« {slug}/{clean_name} » existe déjà : remplacez sa valeur") from None
+            raise VaultError(f"« {slug}/{clean_name} » existe déjà : modifiez-le") from None
     # La référence, jamais la valeur : c'est tout ce qu'un journal a le droit de porter.
     log.info("secret_enregistre", ref=f"{slug}/{clean_name}")
     return secret_id
 
 
-async def resolve_replace_secret_value(
-    pool: asyncpg.Pool, cipher: SecretCipher, secret_id: int, value: str
-) -> None:
-    ref = await pool.fetchval(
-        "UPDATE secrets s SET ciphertext = $2, updated_at = now() FROM secret_categories c"
-        " WHERE s.id = $1 AND c.id = s.category_id RETURNING c.slug || '/' || s.name",
-        secret_id, cipher.encrypt(_value(value), secret_id),
-    )  # fmt: skip
+async def resolve_update_secret(
+    pool: asyncpg.Pool, cipher: SecretCipher, secret_id: int, category_id: int, name: str,
+    description: str, value: str,
+) -> None:  # fmt: skip
+    """Modifie un secret. Une valeur vide CONSERVE l'actuelle : l'écran ne peut pas la
+    préremplir (elle n'est jamais réaffichée), on ne la remplace donc que si elle est saisie.
+    """
+    clean_name = _check(NAME_RE, name, "nom du secret")
+    # Rechiffrer n'est pas nécessaire en cas de changement de nom ou de catégorie : la
+    # donnée authentifiée du chiffré est l'identifiant de ligne, qui ne change pas.
+    blob = cipher.encrypt(_value(value), secret_id) if value.strip() else None
+    try:
+        ref = await pool.fetchval(
+            "UPDATE secrets s SET category_id = $2, name = $3, description = $4,"
+            " ciphertext = coalesce($5, s.ciphertext), updated_at = now()"
+            " FROM secret_categories c WHERE s.id = $1 AND c.id = $2"
+            " RETURNING c.slug || '/' || s.name",
+            secret_id, category_id, clean_name, description.strip() or None, blob,
+        )  # fmt: skip
+    except asyncpg.UniqueViolationError:
+        raise VaultError(f"un secret « {clean_name} » existe déjà dans cette catégorie") from None
     if ref is None:
         raise VaultNotFoundError(secret_id)
-    log.info("secret_remplace", ref=ref)
+    log.info("secret_modifie", ref=ref, valeur_remplacee=blob is not None)
 
 
 async def resolve_delete_secret(pool: asyncpg.Pool, secret_id: int) -> None:
