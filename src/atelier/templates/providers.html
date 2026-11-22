@@ -1,26 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Fournisseurs d'IA — Atelier d'annonces{% endblock %}
 {% block content %}
-<h1>Fournisseurs d'IA</h1>
-<p class="muted">Gemini et OpenAI servent à générer les photos portées et à rédiger les annonces.
-Leurs clefs se rangent sur la page <a href="/secrets">Secrets</a>, sous la référence indiquée.</p>
-{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
-{% for p in providers %}
-<section class="capture">
-  <h2>{{ p.label }}</h2>
-  <p>Clef : <code>{{ p.secret_ref }}</code> —
-    {% if p.secret_ref in present_refs %}<span class="badge">présente</span>
-    {% else %}<strong>absente</strong> : <a href="/secrets">l'ajouter</a>{% endif %}</p>
-  <form method="post" action="/providers/{{ p.name }}/models" class="upload-form">
-    <label for="tm-{{ p.name }}">Modèle texte</label>
-    <input id="tm-{{ p.name }}" name="text_model" value="{{ p.text_model }}" required maxlength="100">
-    <label for="im-{{ p.name }}">Modèle image</label>
-    <input id="im-{{ p.name }}" name="image_model" value="{{ p.image_model }}" required maxlength="100">
-    <button type="submit">Enregistrer les modèles</button>
-  </form>
-  <button type="button" hx-post="/providers/{{ p.name }}/check" hx-target="#check-{{ p.name }}"
-          hx-swap="outerHTML">Tester la connexion</button>
-  <div id="check-{{ p.name }}"></div>
-</section>
-{% endfor %}
+<div class="page-head">
+  <h1>Fournisseurs d'IA</h1>
+  <div class="actions">
+    <button type="button" hx-get="/providers/new" hx-target="#dialog-body"
+            hx-on::after-request="document.getElementById('dialog').showModal()">+ Ajouter un fournisseur</button>
+  </div>
+</div>
+<p class="muted small">Gemini et OpenAI servent à générer les photos portées et à rédiger les annonces.
+Chaque configuration lit sa clef dans le coffre (page <a href="/secrets">Secrets</a>).</p>
+
+{% if providers %}
+<div class="table-wrap">
+  <table class="queue-table secrets-table">
+    <thead>
+      <tr><th>Fournisseur</th><th>Type</th><th>Clef</th><th>Modèle texte</th>
+          <th>Modèle image</th><th>Dernier test</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for p in providers %}
+      <tr>
+        <td>{{ p.label }}<br><code class="small muted">{{ p.name }}</code></td>
+        <td><span class="badge">{{ kinds.get(p.kind, p.kind) }}</span></td>
+        <td><code class="small">{{ p.secret_ref }}</code>
+          {% if p.secret_ref not in present_refs %}<br><span class="badge badge-err">absente du coffre</span>{% endif %}</td>
+        <td><code class="small">{{ p.text_model }}</code></td>
+        <td><code class="small">{{ p.image_model }}</code></td>
+        <td class="small">
+          {% if p.last_check_at %}
+            <span class="badge {{ 'badge-ok' if p.last_check_ok else 'badge-err' }}">{{ "OK" if p.last_check_ok else "échec" }}</span>
+            {{ p.last_check_at.strftime("%d/%m %H:%M") }}
+          {% else %}<span class="muted">jamais</span>{% endif %}
+        </td>
+        <td class="row-actions">
+          <button type="button" class="link" hx-post="/providers/{{ p.name }}/check" hx-target="#dialog-body"
+                  hx-on::after-request="document.getElementById('dialog').showModal()">Tester</button>
+          <button type="button" class="link" hx-get="/providers/{{ p.name }}/edit" hx-target="#dialog-body"
+                  hx-on::after-request="document.getElementById('dialog').showModal()">Modifier</button>
+          <button type="button" class="link-danger" hx-post="/providers/{{ p.name }}/delete"
+                  hx-confirm="Supprimer la configuration « {{ p.label }} » ? La clef reste dans le coffre.">Supprimer</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">Aucun fournisseur configuré. Utilisez « Ajouter un fournisseur ».</p>
+{% endif %}
+
+<dialog id="dialog" class="dialog"><div id="dialog-body"></div></dialog>
 {% endblock %}

@@ -1,0 +1,52 @@
+{% set editing = provider is not none %}
+{% macro val(key, default='') -%}
+{{ values[key] if key in values else (provider[key] if editing else default) }}
+{%- endmacro %}
+{% set cur_kind = values.kind if 'kind' in values else (provider.kind if editing else 'gemini') %}
+{# Type inconnu (saisie forgée) : pas de modèle par défaut, le message d'erreur suffit. #}
+{% set cur_defaults = defaults.get(cur_kind, ('', '')) %}
+{% set cur_ref = values.secret_ref if 'secret_ref' in values else (provider.secret_ref if editing else '') %}
+<form class="dialog-form" hx-post="{{ '/providers/' ~ provider.name if editing else '/providers' }}"
+      hx-target="#dialog-body">
+  <h2>{{ "Modifier le fournisseur" if editing else "Ajouter un fournisseur" }}</h2>
+  {% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+  <label for="p-kind">Type</label>
+  <select id="p-kind" name="kind" required>
+    {% for key, label in kinds.items() %}
+    <option value="{{ key }}" data-text="{{ defaults[key][0] }}" data-image="{{ defaults[key][1] }}"
+            {% if cur_kind == key %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <label for="p-label">Libellé</label>
+  <input id="p-label" name="label" required maxlength="100" value="{{ val('label') }}" placeholder="OpenAI — compte principal">
+  {% if not editing %}
+  <label for="p-name">Identifiant</label>
+  <input id="p-name" name="name" required maxlength="40" pattern="[a-z][a-z0-9_]*" value="{{ val('name') }}" placeholder="openai_principal">
+  <p class="hint">Minuscules, chiffres et _ . Il désigne la configuration dans le code et ne change plus.</p>
+  {% endif %}
+  <label for="p-ref">Clef (dans le coffre)</label>
+  <select id="p-ref" name="secret_ref" required>
+    <option value="">— Choisir un secret —</option>
+    {% if cur_ref and cur_ref not in refs %}<option value="{{ cur_ref }}" selected>{{ cur_ref }} (absente du coffre)</option>{% endif %}
+    {% for ref in refs %}<option value="{{ ref }}"{% if ref == cur_ref %} selected{% endif %}>{{ ref }}</option>{% endfor %}
+  </select>
+  {% if not refs %}<p class="hint">Le coffre est vide : ajoutez d'abord la clef sur la page <a href="/secrets">Secrets</a>.</p>{% endif %}
+  <label for="p-text">Modèle texte</label>
+  <input id="p-text" name="text_model" required maxlength="100" value="{{ val('text_model', cur_defaults[0]) }}">
+  <label for="p-image">Modèle image</label>
+  <input id="p-image" name="image_model" required maxlength="100" value="{{ val('image_model', cur_defaults[1]) }}">
+  {% if not editing %}
+  {# À l'ajout seulement : changer de type propose les modèles par défaut de ce type. #}
+  <script>
+    document.getElementById("p-kind").addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      document.getElementById("p-text").value = opt.dataset.text;
+      document.getElementById("p-image").value = opt.dataset.image;
+    });
+  </script>
+  {% endif %}
+  <div class="dialog-actions">
+    <button type="button" class="secondary" onclick="this.closest('dialog').close()">Annuler</button>
+    <button type="submit">{{ "Enregistrer" if editing else "Ajouter" }}</button>
+  </div>
+</form>

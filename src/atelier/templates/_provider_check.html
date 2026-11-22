@@ -1,4 +1,11 @@
-<div id="check-{{ name }}" class="msg {{ 'msg-ok' if result.ok else 'msg-error' }}" role="status">
-  <p>{{ "Connexion réussie." if result.ok else "Connexion en échec." }}</p>
-  <ul>{% for line in result.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+<div class="dialog-form">
+  <h2>Test de connexion — {{ provider.label }}</h2>
+  <div class="msg {{ 'msg-ok' if result.ok else 'msg-error' }}" role="status">
+    <p>{{ "Connexion réussie." if result.ok else "Connexion en échec." }}</p>
+    <ul>{% for line in result.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+  <div class="dialog-actions">
+    {# Fermer recharge la liste : la colonne « Dernier test » vient de changer. #}
+    <button type="button" onclick="window.location.reload()">Fermer</button>
+  </div>
 </div>

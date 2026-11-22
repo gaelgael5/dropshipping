@@ -122,3 +122,6 @@ button.secondary { background: #eef1f6; color: var(--fg); }
 .inline-edit { display: flex; gap: 0.5rem; align-items: center; }
 .inline-edit input { font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
 .secrets-table .badge, .secrets-table td.small { white-space: nowrap; }
+.badge-err { background: var(--err-bg); color: var(--err-fg); }
+.msg ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.msg p { margin: 0; }
