@@ -121,3 +121,4 @@ button.secondary { background: #eef1f6; color: var(--fg); }
 .form-row input { flex: 1 1 10rem; }
 .inline-edit { display: flex; gap: 0.5rem; align-items: center; }
 .inline-edit input { font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.secrets-table .badge, .secrets-table td.small { white-space: nowrap; }
