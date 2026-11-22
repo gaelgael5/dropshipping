@@ -1,0 +1,24 @@
+{# Un attribut, enregistré seul dès qu'il change (pas de formulaire validé en bloc).
+   Le fragment renvoyé remplace celui-ci et affiche la valeur réellement stockée. #}
+{% set field_id = owner ~ "-" ~ row_id ~ "-" ~ name %}
+<div class="field{% if error %} field-error{% endif %}" id="field-{{ field_id }}">
+  <label for="{{ field_id }}">{{ spec.label }}</label>
+  {% set hx %}hx-post="/{{ owner }}/{{ row_id }}/fields/{{ name }}" hx-trigger="change" hx-target="#field-{{ field_id }}" hx-swap="outerHTML"{% endset %}
+  {% if spec.widget == "textarea" %}
+  <textarea id="{{ field_id }}" name="value" rows="5" {{ hx }}>{{ shown }}</textarea>
+  {% elif spec.widget == "tristate" %}
+  <select id="{{ field_id }}" name="value" {{ hx }}>
+    {% for option in ["inconnu", "oui", "non"] %}
+    <option value="{{ option }}"{% if shown == option %} selected{% endif %}>{{ option }}</option>
+    {% endfor %}
+  </select>
+  {% else %}
+  <input id="{{ field_id }}" name="value" type="text" value="{{ shown }}"
+         {% if spec.widget == "price" %}inputmode="decimal" placeholder="0,00"{% endif %}
+         {% if spec.widget == "currency" %}maxlength="3" placeholder="EUR"{% endif %}
+         {% if spec.widget == "list" %}placeholder="S, M, L"{% endif %}
+         {{ hx }}>
+  {% endif %}
+  {% if error %}<span class="field-msg" role="alert">{{ error }}</span>
+  {% elif saved %}<span class="field-msg field-ok" role="status">Enregistré</span>{% endif %}
+</div>

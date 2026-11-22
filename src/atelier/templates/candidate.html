@@ -1,9 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Candidate {{ candidate.id }} — Atelier d'annonces{% endblock %}
+{% block title %}{{ candidate.title or "Candidate " ~ candidate.id }} — Atelier d'annonces{% endblock %}
 {% block content %}
 <p><a href="/">← Candidates</a></p>
-{# Page volontairement minimale : les attributs de vente et les liens d'achat
-   arrivent avec le ticket « La fiche d'une candidate ». #}
-<h1>{{ candidate.title or "Sans titre" }} <span class="badge">{{ candidate.status }}</span></h1>
+<div class="fiche-head">
+  <h1>{{ candidate.title or "Sans titre" }} <span class="muted">n° {{ candidate.id }}</span></h1>
+  <button type="button" class="danger" hx-post="/candidates/{{ candidate.id }}/delete"
+          hx-confirm="Supprimer cette candidate, ses liens d'achat et ses photos (fichiers compris) ?">
+    Supprimer la candidate</button>
+</div>
+
+<section class="capture">
+  <h2>Attributs de vente</h2>
+  <div class="field-grid">
+    {% for name, spec in candidate_fields.items() %}
+    {% with owner="candidates", row_id=candidate.id, shown=spec.display(candidate[spec.column]), error=None, saved=False %}
+    {% include "_field.html" %}
+    {% endwith %}
+    {% endfor %}
+  </div>
+</section>
+
+{% include "_links.html" %}
 {% include "_candidate_photos.html" %}
 {% endblock %}

@@ -1,0 +1,35 @@
+{# Liens d'achat, triés du moins cher au plus cher pour comparer avant de commander. #}
+<section class="links" id="candidate-links">
+  <h2>Liens d'achat</h2>
+  {% if link_error %}<p class="msg msg-error" role="alert">{{ link_error }}</p>{% endif %}
+  {% if links %}
+  <ul class="link-list">
+    {% for link in links %}
+    <li class="link-card">
+      <div class="link-head">
+        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="link-url">{{ link.url }}</a>
+        <span class="badge">{{ link.site_name or "site inconnu" }}</span>
+        <button type="button" class="link-danger" hx-post="/links/{{ link.id }}/delete"
+                hx-target="#candidate-links" hx-swap="outerHTML"
+                hx-confirm="Retirer ce lien d'achat ?">Retirer</button>
+      </div>
+      <div class="field-grid">
+        {% for name, spec in link_fields.items() %}
+        {% with owner="links", row_id=link.id, shown=spec.display(link[spec.column]), error=None, saved=False %}
+        {% include "_field.html" %}
+        {% endwith %}
+        {% endfor %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Aucun lien d'achat.</p>
+  {% endif %}
+  <form class="capture-row" hx-post="/candidates/{{ candidate.id }}/links"
+        hx-target="#candidate-links" hx-swap="outerHTML">
+    <input name="url" type="text" inputmode="url" placeholder="Ajouter un lien : https://…" required
+           aria-label="URL du lien d'achat à ajouter">
+    <button type="submit">Ajouter</button>
+  </form>
+</section>

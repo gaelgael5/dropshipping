@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
-from atelier.candidates.repository import db_get_candidate
 from atelier.images import repository as repo
 from atelier.images.normalize import MAX_UPLOAD_BYTES, InvalidImageError
 from atelier.images.photos import (
@@ -44,7 +43,7 @@ async def serve_media(request: Request, relative: str) -> FileResponse:
     return FileResponse(path)
 
 
-async def _photos_view(request: Request, candidate_id: int) -> list[dict[str, object]]:
+async def photos_view(request: Request, candidate_id: int) -> list[dict[str, object]]:
     async with request.app.state.pool.acquire() as conn:
         photos = await repo.db_list_candidate_photos(conn, candidate_id)
     store = _store(request)
@@ -63,23 +62,6 @@ def _exists(store: ImageStore, relative: str) -> bool:
         return False
 
 
-@router.get("/candidates/{candidate_id}")
-async def show_candidate(request: Request, candidate_id: int) -> HTMLResponse:
-    async with request.app.state.pool.acquire() as conn:
-        candidate = await db_get_candidate(conn, candidate_id)
-    if candidate is None:
-        raise HTTPException(status_code=404)
-    return templates.TemplateResponse(
-        request,
-        "candidate.html",
-        {
-            "candidate": candidate,
-            "candidate_id": candidate_id,
-            "photos": await _photos_view(request, candidate_id),
-        },
-    )
-
-
 @router.get("/candidates/{candidate_id}/photos")
 async def show_candidate_photos(request: Request, candidate_id: int) -> HTMLResponse:
     async with request.app.state.pool.acquire() as conn:
@@ -88,7 +70,7 @@ async def show_candidate_photos(request: Request, candidate_id: int) -> HTMLResp
     return templates.TemplateResponse(
         request,
         "_candidate_photos.html",
-        {"candidate_id": candidate_id, "photos": await _photos_view(request, candidate_id)},
+        {"candidate_id": candidate_id, "photos": await photos_view(request, candidate_id)},
     )
 
 
@@ -110,7 +92,7 @@ async def upload_candidate_photo(
         "_candidate_photos.html",
         {
             "candidate_id": candidate_id,
-            "photos": await _photos_view(request, candidate_id),
+            "photos": await photos_view(request, candidate_id),
             "error": error,
         },
         status_code=422 if error else 200,
@@ -127,7 +109,7 @@ async def delete_candidate_photo(request: Request, photo_id: int) -> Response:
         "_candidate_photos.html",
         {
             "candidate_id": photo.candidate_id,
-            "photos": await _photos_view(request, photo.candidate_id),
+            "photos": await photos_view(request, photo.candidate_id),
         },
     )
 
