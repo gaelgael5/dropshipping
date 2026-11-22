@@ -1,9 +1,8 @@
 {% for row in rows %}
 <tr id="candidate-{{ row.id }}"{% if highlight == row.id %} class="highlight"{% endif %}>
   <td>
-    {% if row.title %}{{ row.title }}
-    {% else %}<span class="muted">Sans titre</span>{% if row.first_link_host %} <span class="host">{{ row.first_link_host }}</span>{% endif %}
-    {% endif %}
+    <a href="/candidates/{{ row.id }}">{% if row.title %}{{ row.title }}{% else %}<span class="muted">Sans titre</span>{% endif %}</a>
+    {% if not row.title and row.first_link_host %} <span class="host">{{ row.first_link_host }}</span>{% endif %}
   </td>
   {# La catégorie arrive avec le ticket de l'arbre de catégories. #}
   <td><span class="muted">Non classée</span></td>

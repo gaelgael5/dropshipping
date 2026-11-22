@@ -1,0 +1,33 @@
+{# Bloc autonome, remplacé en entier par HTMX après chaque dépôt ou suppression. #}
+<section class="photos" id="candidate-photos">
+  <h2>Photos</h2>
+  {% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+  {% if photos %}
+  <ul class="photo-grid">
+    {% for item in photos %}
+    <li class="photo-card">
+      {% if item.missing %}
+      <div class="photo-missing" role="img" aria-label="Fichier manquant">Fichier manquant</div>
+      {% else %}
+      <img src="{{ item.url }}" alt="Photo {{ item.photo.id }}" loading="lazy"
+           width="{{ item.photo.width }}" height="{{ item.photo.height }}">
+      {% endif %}
+      <div class="photo-meta">
+        <span class="badge">{{ "générée" if item.photo.kind == "generee" else "visuel" }}</span>
+        <button type="button" class="link-danger" hx-post="/photos/{{ item.photo.id }}/delete"
+                hx-target="#candidate-photos" hx-swap="outerHTML"
+                hx-confirm="Supprimer cette photo et son fichier ?">Supprimer</button>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Aucune photo pour cette candidate.</p>
+  {% endif %}
+  <form class="upload-form" hx-post="/candidates/{{ candidate_id }}/photos" hx-encoding="multipart/form-data"
+        hx-target="#candidate-photos" hx-swap="outerHTML">
+    <label for="photo-file-{{ candidate_id }}">Déposer un visuel</label>
+    <input id="photo-file-{{ candidate_id }}" type="file" name="file" accept="image/*" required>
+    <button type="submit">Déposer</button>
+  </form>
+</section>

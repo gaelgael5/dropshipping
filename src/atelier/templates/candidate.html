@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Candidate {{ candidate.id }} — Atelier d'annonces{% endblock %}
+{% block content %}
+<p><a href="/">← Candidates</a></p>
+{# Page volontairement minimale : les attributs de vente et les liens d'achat
+   arrivent avec le ticket « La fiche d'une candidate ». #}
+<h1>{{ candidate.title or "Sans titre" }} <span class="badge">{{ candidate.status }}</span></h1>
+{% include "_candidate_photos.html" %}
+{% endblock %}

@@ -13,6 +13,7 @@ _Conn = asyncpg.Connection | PoolConnectionProxy
 class CandidateRef:
     id: int
     title: str | None
+    status: str = "brouillon"
 
 
 @dataclass(frozen=True)
@@ -97,3 +98,10 @@ async def db_list_candidates(conn: _Conn, before_id: int | None, limit: int) -> 
         )
         for r in rows
     ]
+
+
+async def db_get_candidate(conn: _Conn, candidate_id: int) -> CandidateRef | None:
+    row = await conn.fetchrow(
+        "SELECT id, title, status FROM candidates WHERE id = $1", candidate_id
+    )
+    return CandidateRef(row["id"], row["title"], row["status"]) if row else None

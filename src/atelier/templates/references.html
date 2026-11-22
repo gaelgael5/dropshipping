@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Photos de référence — Atelier d'annonces{% endblock %}
+{% block content %}
+<h1>Photos mannequin de référence</h1>
+<p class="muted">La référence par défaut sert de base à toutes les générations. En déposer une
+nouvelle ne modifie aucune photo déjà générée.</p>
+
+<form method="post" action="/references" enctype="multipart/form-data" class="capture upload-form">
+  <label for="ref-label">Libellé</label>
+  <input id="ref-label" name="label" type="text" maxlength="120" placeholder="Mannequin face, fond blanc">
+  <label for="ref-file">Photo</label>
+  <input id="ref-file" name="file" type="file" accept="image/*" required>
+  <button type="submit">Déposer</button>
+</form>
+{% if error %}<p class="msg msg-error" role="alert">{{ error }}</p>{% endif %}
+
+{% if items %}
+<ul class="photo-grid">
+  {% for item in items %}
+  <li class="photo-card{% if item.ref.is_default %} is-default{% endif %}">
+    {% if item.missing %}
+    <div class="photo-missing" role="img" aria-label="Fichier manquant">Fichier manquant</div>
+    {% else %}
+    <img src="{{ item.url }}" alt="{{ item.ref.label }}" loading="lazy"
+         width="{{ item.ref.width }}" height="{{ item.ref.height }}">
+    {% endif %}
+    <div class="photo-meta">
+      <span>{{ item.ref.label }}</span>
+      {% if item.ref.is_default %}
+      <span class="badge badge-ok">Par défaut</span>
+      {% else %}
+      <form method="post" action="/references/{{ item.ref.id }}/default">
+        <button type="submit" class="link">Utiliser par défaut</button>
+      </form>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Aucune photo de référence. Déposez la photo du mannequin qui servira de base aux générations.</p>
+{% endif %}
+{% endblock %}
