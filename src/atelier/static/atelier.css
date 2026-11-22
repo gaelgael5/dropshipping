@@ -125,3 +125,4 @@ button.secondary { background: #eef1f6; color: var(--fg); }
 .badge-err { background: var(--err-bg); color: var(--err-fg); }
 .msg ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
 .msg p { margin: 0; }
+.secrets-table code { white-space: nowrap; }
