@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from atelier.api import capture, health, mcp_route, oauth_routes
 from atelier.config import Settings
+from atelier.form_encoding import Utf8FormBodyMiddleware
 from atelier.images.store import ImageStore
 from atelier.vault.cipher import SecretCipher
 from atelier.web import (
@@ -32,6 +33,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     forme de trace brute, alors que le socle exige un message explicite.
     """
     app = FastAPI(title="Atelier d'annonces candidates")
+    app.add_middleware(Utf8FormBodyMiddleware)
     app.state.settings = settings
     app.state.pool = pool
     app.state.image_store = ImageStore(settings.images_root)
