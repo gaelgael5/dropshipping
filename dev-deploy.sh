@@ -103,11 +103,14 @@ env_get() { grep "^$1=" .env | tail -1 | cut -d= -f2-; }
 # Valeur absente de .env : prise dans l'environnement si elle y est, sinon le
 # défaut ; elle est persistée et relue aux passages suivants.
 env_default() { grep -q "^$1=" .env || echo "$1=${!1:-$2}" >> .env; }
-env_secret()  { grep -q "^$1=" .env || echo "$1=$(openssl rand -hex 24)" >> .env; }
+env_secret()  { grep -q "^$1=" .env || echo "$1=$(openssl rand -hex "${2:-24}")" >> .env; }
 env_default COMPOSE_PROJECT_NAME dropshipping
 env_default ATELIER_PUBLISHED_PORT 8000
 env_secret  ATELIER_DB_PASSWORD
 env_secret  ATELIER_CAPTURE_TOKEN
+# Clef maîtresse du coffre de secrets (32 octets). Générée une seule fois, jamais
+# écrasée : la régénérer rendrait illisibles tous les secrets déjà enregistrés.
+env_secret  ATELIER_SECRETS_KEY 32
 # Cible de la déclaration à l'annuaire (le jeton, lui, n'est jamais ici).
 env_default EXPOSE_PORTAL_URL https://dev.yoops.org
 env_default EXPOSE_WORKSPACE dropshipping

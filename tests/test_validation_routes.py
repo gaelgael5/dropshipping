@@ -18,6 +18,7 @@ async def client(tmp_path: Path, migrated_pool: asyncpg.Pool) -> AsyncIterator[h
         database_url=SecretStr("postgresql://u:p@h/atelier"),
         images_root=tmp_path,
         capture_token=SecretStr("tok"),
+        secrets_key=SecretStr("ab" * 32),
     )
     app = create_app(settings, migrated_pool)
     async with httpx.AsyncClient(

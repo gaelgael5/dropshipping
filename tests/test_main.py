@@ -17,6 +17,8 @@ def _free_port() -> int:
 def _env(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
     for key in ("DATABASE_URL", "IMAGES_ROOT", "CAPTURE_TOKEN"):
         monkeypatch.delenv(f"ATELIER_{key}", raising=False)
+    # Clef maîtresse valide par défaut : ces tests portent sur les autres variables.
+    monkeypatch.setenv("ATELIER_SECRETS_KEY", "cd" * 32)
     for key, value in values.items():
         monkeypatch.setenv(f"ATELIER_{key}", value)
 

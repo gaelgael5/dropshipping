@@ -19,6 +19,7 @@ async def client(tmp_path: Path, migrated_pool: asyncpg.Pool) -> AsyncIterator[h
         database_url=SecretStr("postgresql://u:p@h/atelier"),
         images_root=tmp_path / "images",
         capture_token=SecretStr("tok"),
+        secrets_key=SecretStr("ab" * 32),
     )
     (tmp_path / "images").mkdir()
     (tmp_path / "secret.txt").write_text("hors volume")

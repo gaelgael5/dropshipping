@@ -29,6 +29,7 @@ services:
       ATELIER_DATABASE_URL: postgresql://atelier:${ATELIER_DB_PASSWORD:?définir ATELIER_DB_PASSWORD}@db:5432/atelier
       ATELIER_IMAGES_ROOT: /data/images
       ATELIER_CAPTURE_TOKEN: ${ATELIER_CAPTURE_TOKEN:?définir ATELIER_CAPTURE_TOKEN}
+      ATELIER_SECRETS_KEY: ${ATELIER_SECRETS_KEY:?définir ATELIER_SECRETS_KEY}
       ATELIER_HTTP_HOST: 0.0.0.0
     volumes:
       - images:/data/images

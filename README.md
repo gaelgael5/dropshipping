@@ -21,6 +21,7 @@ L'application écoute sur <http://localhost:8000> (port côté hôte réglable p
 | `ATELIER_DATABASE_URL` | chaîne de connexion PostgreSQL (obligatoire) |
 | `ATELIER_IMAGES_ROOT` | racine du volume d'images, doit être inscriptible (obligatoire) |
 | `ATELIER_CAPTURE_TOKEN` | jeton du raccourci de capture (obligatoire) |
+| `ATELIER_SECRETS_KEY` | clef maîtresse du coffre de secrets, 64 caractères hexadécimaux (obligatoire ; à sauvegarder à part de la base) |
 | `ATELIER_HTTP_HOST` / `ATELIER_HTTP_PORT` | adresse d'écoute (défaut `127.0.0.1:8000`) |
 | `ATELIER_DB_CONNECT_TIMEOUT_S` | délai de connexion à la base au démarrage (défaut 10 s) |
 

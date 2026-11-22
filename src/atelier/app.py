@@ -9,7 +9,15 @@ from fastapi.staticfiles import StaticFiles
 from atelier.api import capture, health
 from atelier.config import Settings
 from atelier.images.store import ImageStore
-from atelier.web import candidate_page, categories_page, pages, photos, validation_page
+from atelier.vault.cipher import SecretCipher
+from atelier.web import (
+    candidate_page,
+    categories_page,
+    pages,
+    photos,
+    secrets_page,
+    validation_page,
+)
 
 _PACKAGE_DIR = Path(__file__).parent
 
@@ -25,6 +33,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     app.state.settings = settings
     app.state.pool = pool
     app.state.image_store = ImageStore(settings.images_root)
+    app.state.secret_cipher = SecretCipher(settings.secrets_key_bytes())
     app.mount("/static", StaticFiles(directory=_PACKAGE_DIR / "static"), name="static")
     # Une surface = un routeur : pages HTML, API HTTP, et plus tard outils MCP,
     # pour qu'elles évoluent (auth, préfixe, format d'erreur) indépendamment.
@@ -33,6 +42,7 @@ def create_app(settings: Settings, pool: asyncpg.Pool) -> FastAPI:
     app.include_router(categories_page.router)
     app.include_router(validation_page.router)
     app.include_router(photos.router)
+    app.include_router(secrets_page.router)
     app.include_router(health.router)
     app.include_router(capture.router)
     return app

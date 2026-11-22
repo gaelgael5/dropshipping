@@ -18,6 +18,7 @@ def settings(tmp_path: Path) -> Settings:
         database_url=SecretStr("postgresql://u:p@h/atelier"),
         images_root=tmp_path,
         capture_token=SecretStr("tok"),
+        secrets_key=SecretStr("ab" * 32),
     )
 
 
